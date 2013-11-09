@@ -124,18 +124,10 @@ public:
 
 	ContentType& operator[]( Coord c) 
 	{ 
-		if( table == nullptr)
-		{
-			throw std::runtime_error("ERROR: Access to unallocated table!");
-		}
 		return table[ columns * c.row + c.column];
 	}
 	const ContentType& operator[]( Coord c) const 
-		{ 
-		if( table == nullptr)
-		{
-			throw std::runtime_error("ERROR: Access to unallocated table!");
-		}
+	{ 
 		return table[ columns * c.row + c.column];
 	}
 
@@ -250,7 +242,7 @@ public:
 		{
 			for( int j = 0; j < BOARD_SIDE; ++j)
 			{
-				sum += manhatanDistance( Coord( i, j), GoalPlace[ numAt( Coord( i, j))]);
+				sum += manhatanDistance( Coord( i, j), GoalPlace[ numAt( Coord( i, j)) ]);
 			}
 		}
 		return sum;
@@ -375,7 +367,8 @@ int AStar( Board startingPosition)
 
 int main( int argc, char* argv[])
 {
-	char table[] = "653248701";
+	//char table[] = "653248701";
+	char table[] = "806547231";
 
 	Matrix<char> tableMat( table, 3, 3);
 
