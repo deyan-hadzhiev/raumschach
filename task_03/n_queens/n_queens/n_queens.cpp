@@ -3,6 +3,10 @@
 #include <ctime>
 #include <vector>
 
+#ifdef _DEBUG
+#define DEBUG
+#endif
+
 template< class T>
 inline T Max( T a, T b) { return a > b ? a : b;}
 
@@ -51,6 +55,24 @@ public:
 		queens[col] = row;
 	}
 
+	void Randomize()
+	{
+#ifdef DEBUG
+		printf("randomized\n");
+#endif
+		for( int i = 0; i < numQueens; ++i)
+		{
+			queens[i] = i;
+		}
+		for( int i = 0; i < numQueens; ++i)
+		{
+			int j = GetRand( numQueens);
+			int tmp = queens[j];
+			queens[j] = queens[i];
+			queens[i] = tmp;
+		}
+	}
+
 	void Initialize()
 	{
 		for( int col = 0; col < numQueens; ++col)
@@ -78,22 +100,41 @@ public:
 
 	bool MinConflicts( unsigned maxIterations)
 	{
+		using std::vector;
+		auto GetRandElement = [] (const std::vector<int>& container) -> int { return container.size() > 1 ? container[GetRand(container.size())] : container[0];};
+
 		bool goalAchieved = false;
 		int lastCol = 0;
+		vector<int> candidates;
+
+		bool debug = false;
+#ifdef DEBUG
+		debug = true;
+#endif
 
 		for(int i = 0; i < maxIterations && !goalAchieved; ++i)
 		{
 			int numConflicts = FindConflicts();
 			if( goalAchieved = (numConflicts == 0)) break;
-			//else printf("%d %d\n", i, numConflicts);
-			int candidateColumn = MaxColConflicts();
+			else if( debug) printf("\r%5d ", numConflicts);
+			
+			if( i == numQueens*3) Randomize(); // we need to reset the board
 
-			if( candidateColumn == lastCol) Initialize();
-			else lastCol = candidateColumn;
+			candidates.clear();
 
-			int candidateRow = MinRowConflicts( candidateColumn);
+			FindMaxColConflicts( candidates);
+			int candidateColumn = GetRandElement( candidates);
+			if( debug) printf("[cols : %5d] ", candidates.size());
+			
+			candidates.clear();
+
+			FindMinRowConflicts( candidates, candidateColumn);
+			if( debug) printf("{rows : %5d}", candidates.size());
+			int candidateRow = GetRandElement( candidates);
+
 			SetQueen( candidateColumn, candidateRow);
 		}
+		if( debug) printf("\n");
 		return goalAchieved;
 	}
 
@@ -105,6 +146,25 @@ public:
 			conflicts += Hits( i, queens[i]);
 		}
 		return conflicts / 2;
+	}
+
+	void FindMaxColConflicts( std::vector<int>& container)
+	{
+		int conflicts = 0;
+		for( int i = 0; i < numQueens; ++i)
+		{
+			int hits = Hits( i, queens[i]);
+			if( conflicts < hits)
+			{
+				conflicts = hits;
+				container.clear();
+				container.push_back(i);
+			}
+			else if ( hits == conflicts)
+			{
+				container.push_back(i);
+			}
+		}
 	}
 
 	int MaxColConflicts() const
@@ -132,7 +192,7 @@ public:
 			if( hits < conflicts)
 			{
 				conflicts = hits;
-				container.erase( container.begin(), container.end());
+				container.clear();
 				container.push_back( i);
 			}
 			else if( hits == conflicts)
@@ -211,7 +271,12 @@ int main( int argc, char* argv[])
 {
 	srand( time(NULL));
 	int n = 8;
-	std::cout << "Enter the number of queens" << std::endl;
+	bool debug = false;
+#ifdef DEBUG
+	debug = true;
+#endif
+
+	if( debug) std::cout << "Enter the number of queens" << std::endl;
 
 	const int MAX_ITERATIONS = 1000000;
 
@@ -219,16 +284,17 @@ int main( int argc, char* argv[])
 
 	long long start = clock();
 
-	std::cout << "Initializing the checker board" << std::endl;
+	if( debug) std::cout << "Initializing the checker board" << std::endl;
 
 	CheckerBoard check( n);
-	check.Initialize();
+	//check.Initialize();
+	check.Randomize();
 	
-	std::cout << "Starting calculation ( max iterations: " << MAX_ITERATIONS << ")" << std::endl;
+	if( debug) std::cout << "Starting calculation ( max iterations: " << MAX_ITERATIONS << ")" << std::endl;
 
 	bool found = check.MinConflicts( MAX_ITERATIONS);
 
-	std::cout << "Calculation finished - result " << (found ? "" : "NOT ") << "found" << std::endl;
+	if( debug) std::cout << "Calculation finished - result " << (found ? "" : "NOT ") << "found" << std::endl;
 
 	long long end = clock();
 
@@ -240,18 +306,25 @@ int main( int argc, char* argv[])
 	int min = (second / 60) % 60;
 	int hrs = second / 3600;
 
-	printf("Calculation time : %dh %dm %d.%ds\n", hrs, min, sec, ms);
+	if( debug) printf("Calculation time : %dh %dm %d.%ds\n", hrs, min, sec, ms);
 
 	const char filename[] = "output.txt";
 
 	if( found)
 	{
-		printf("Outputing into : %s\n", filename);
-		FILE* out = fopen( filename, "wt");
-		if( out != NULL)
+		if( debug)
 		{
-			PrintCheckerBoard( check, out);
-			fclose( out);
+			printf("Outputing into : %s\n", filename);
+			FILE* out = fopen( filename, "wt");
+			if( out != NULL)
+			{
+				PrintCheckerBoard( check, out);
+				fclose( out);
+			}
+		}
+		else
+		{
+			PrintCheckerBoard( check);
 		}
 	}
 	system( "pause");
