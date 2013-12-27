@@ -1,0 +1,46 @@
+#ifndef __PIECES_H__
+#define __PIECES_H__
+
+#include "configuration.h"
+#include "utils.h"
+
+class Piece
+{
+public:
+	Piece();
+	Piece(Config::PieceType type, Config::PlayerColour col, coord pos);
+	Piece(Config::PieceType type, Config::PlayerColour col, ChessVector pos);
+	Piece(const Piece& copy);
+
+	Piece& operator=(const Piece& assign);
+
+	ChessVector GetPositionVector() const;
+	void SetPositionVector(ChessVector pos);
+	coord GetPositionCoord() const;
+	void SetPositionCoord(coord pos);
+
+	Config::PlayerColour GetColour() const;
+	void SetColour(Config::PlayerColour col);
+
+	Config::PieceType GetType() const;
+	void SetType(Config::PieceType type);
+
+	int GetWorth() const;
+
+	friend bool operator<(const Piece& lhs, const Piece& rhs);
+private:
+
+	void SetFlag(unsigned short flag,unsigned short mask, char offset)
+	{
+		flags = (flags & ~ mask) | (flag << offset);
+	}
+
+	unsigned short GetFlag(unsigned short mask, char offset) const
+	{
+		return (flags & mask) >> offset;
+	}
+
+	unsigned short flags;
+};
+
+#endif // __PIECES_H__
