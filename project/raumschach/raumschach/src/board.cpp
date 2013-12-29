@@ -23,7 +23,7 @@ BitBoardMovePool::BitBoardMovePool()
 
 void BitBoardMovePool::Initalize()
 {
-	const int boardSize = Config::BOARD_SIZE * Config::BOARD_SIZE * Config::BOARD_SIZE;
+	const int boardSize = Config::BOARD_SIZE;
 	auto initPieceMoves = [boardSize] (BitBoard dest[], const coord srcVectors[][3], int srcVectorSize, bool scaleable)
 	{
 		for(int i = 0; i < boardSize; ++i)
@@ -38,11 +38,11 @@ void BitBoardMovePool::Initalize()
 	initPieceMoves( pool[Config::BISHOP], Const::BISHOP_MOVE_VECTORS, VECTORS_COUNT(Const::BISHOP_MOVE_VECTORS), Const::PIECE_MOVE_SCALING[Config::BISHOP]);
 	initPieceMoves( pool[Config::KNIGHT], Const::KNIGHT_MOVE_VECTORS, VECTORS_COUNT(Const::KNIGHT_MOVE_VECTORS), Const::PIECE_MOVE_SCALING[Config::KNIGHT]);
 	initPieceMoves( pool[Config::UNICORN], Const::UNICORN_MOVE_VECTORS, VECTORS_COUNT(Const::UNICORN_MOVE_VECTORS), Const::PIECE_MOVE_SCALING[Config::UNICORN]);
-	initPieceMoves( pool[Config::PAWN + Config::PCOLOUR_WHITE], Const::PAWN_MOVE_VECTORS_WHITE, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_WHITE), Const::PIECE_MOVE_SCALING[Config::PAWN]);
-	initPieceMoves( pool[Config::PAWN + Config::PCOLOUR_BLACK], Const::PAWN_MOVE_VECTORS_BLACK, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_BLACK), Const::PIECE_MOVE_SCALING[Config::PAWN]);
+	initPieceMoves( pool[Config::PAWN + Config::WHITE], Const::PAWN_MOVE_VECTORS_WHITE, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_WHITE), Const::PIECE_MOVE_SCALING[Config::PAWN]);
+	initPieceMoves( pool[Config::PAWN + Config::BLACK], Const::PAWN_MOVE_VECTORS_BLACK, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_BLACK), Const::PIECE_MOVE_SCALING[Config::PAWN]);
 
-	initPieceMoves( pawnCapturePool[Config::PCOLOUR_WHITE], Const::PAWN_CAPTURE_VECTORS_WHITE, VECTORS_COUNT(Const::PAWN_CAPTURE_VECTORS_WHITE), Const::PIECE_MOVE_SCALING[Config::PAWN]);
-	initPieceMoves( pawnCapturePool[Config::PCOLOUR_BLACK], Const::PAWN_CAPTURE_VECTORS_BLACK, VECTORS_COUNT(Const::PAWN_CAPTURE_VECTORS_BLACK), Const::PIECE_MOVE_SCALING[Config::PAWN]);
+	initPieceMoves( pawnCapturePool[Config::WHITE], Const::PAWN_CAPTURE_VECTORS_WHITE, VECTORS_COUNT(Const::PAWN_CAPTURE_VECTORS_WHITE), Const::PIECE_MOVE_SCALING[Config::PAWN]);
+	initPieceMoves( pawnCapturePool[Config::BLACK], Const::PAWN_CAPTURE_VECTORS_BLACK, VECTORS_COUNT(Const::PAWN_CAPTURE_VECTORS_BLACK), Const::PIECE_MOVE_SCALING[Config::PAWN]);
 }
 
 BitBoard BitBoardMovePool::CalculateBitBoard(ChessVector pos, const coord vectors[][3], int srcVectorSize, bool scaleable)
@@ -58,7 +58,7 @@ BitBoard BitBoardMovePool::CalculateBitBoard(ChessVector pos, const coord vector
 
 		if( scaleable)
 		{
-			for(int scale = 2; scale <= Config::BOARD_SIZE; ++scale)
+			for(int scale = 2; scale <= Config::BOARD_SIDE; ++scale)
 			{
 				dest = pos + (ChessVector(vectors[i]) * scale);
 				if(Board::ValidVector(dest))
@@ -106,9 +106,9 @@ Board& Board::operator=(const Board& assign)
 
 bool Board::ValidVector(ChessVector vec)
 {
-	return vec.x >= 0 && vec.x < Config::BOARD_SIZE
-		&& vec.y >= 0 && vec.y < Config::BOARD_SIZE
-		&& vec.z >= 0 && vec.z < Config::BOARD_SIZE;
+	return vec.x >= 0 && vec.x < Config::BOARD_SIDE
+		&& vec.y >= 0 && vec.y < Config::BOARD_SIDE
+		&& vec.z >= 0 && vec.z < Config::BOARD_SIDE;
 }
 
 int Board::GetPieceIndex(ChessVector pos) const
@@ -138,4 +138,50 @@ void Board::RemovePiece(ChessVector pos)
 	int index = GetPieceIndex(pos);
 	if( index != -1)
 		pieces.RemoveItem(index);
+}
+
+BoardTileState::BoardTileState()
+{
+	for(int i = 0; i < COUNT_OF(tiles); ++i)
+	{
+		tiles[i] = Config::TILE_NORMAL;
+	}
+}
+
+BoardTileState::BoardTileState(const BoardTileState& copy)
+{
+	for(int i = 0; i < COUNT_OF(tiles); ++i)
+	{
+		tiles[i] = copy.tiles[i];
+	}
+}
+
+BoardTileState& BoardTileState::operator=(const BoardTileState& assign)
+{
+	for(int i = 0; i < COUNT_OF(tiles); ++i)
+	{
+		tiles[i] = assign.tiles[i];
+	}
+	return *this;
+}
+
+Config::TileType BoardTileState::GetBoardTileState(ChessVector pos) const
+{
+	return tiles[pos.GetVectorCoord()];
+}
+
+void BoardTileState::SetBoardTileState(Config::TileType state, ChessVector pos)
+{
+	tiles[pos.GetVectorCoord()] = state;
+}
+
+void BoardTileState::SetBoardTileState(Config::TileType state, const BitBoard& bb)
+{
+	for(coord pos = 0; pos < Config::BOARD_SIZE; ++pos)
+	{
+		if(bb.GetBits(pos, Config::BITBOARD_BIT))
+		{
+			tiles[pos] = state;
+		}
+	}
 }

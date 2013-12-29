@@ -1,6 +1,10 @@
 #include "utils.h"
 #include "configuration.h"
 
+ChessVector::ChessVector()
+	: x(0), y(0), z(0)
+{}
+
 ChessVector::ChessVector(const coord coordArray[])
 	: x(coordArray[0]), y(coordArray[1]), z(coordArray[2])
 {}
@@ -15,9 +19,9 @@ ChessVector::ChessVector( const ChessVector& copy)
 
 ChessVector::ChessVector(coord singleCoord)
 {
-	z = singleCoord / (Config::BOARD_SIZE * Config::BOARD_SIZE);
-	y = (singleCoord % (Config::BOARD_SIZE * Config::BOARD_SIZE)) / Config::BOARD_SIZE;
-	x = singleCoord % Config::BOARD_SIZE;
+	z = singleCoord / (Config::BOARD_SIDE * Config::BOARD_SIDE);
+	y = (singleCoord % (Config::BOARD_SIDE * Config::BOARD_SIDE)) / Config::BOARD_SIDE;
+	x = singleCoord % Config::BOARD_SIDE;
 }
 
 ChessVector& ChessVector::operator=(const ChessVector& assign)
@@ -92,8 +96,8 @@ ChessVector& ChessVector::operator-()
 
 coord ChessVector::GetVectorCoord() const
 {
-	using Config::BOARD_SIZE;
-	return z * BOARD_SIZE * BOARD_SIZE + y * BOARD_SIZE + x;
+	using Config::BOARD_SIDE;
+	return z * BOARD_SIDE * BOARD_SIDE + y * BOARD_SIDE + x;
 }
 
 BitBoard::BitBoard()

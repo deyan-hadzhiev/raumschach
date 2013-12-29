@@ -19,8 +19,24 @@ private:
 
 	static BitBoard CalculateBitBoard(ChessVector pos, const coord vectors[][3], int srcVectorSize, bool scaleable);
 
-	BitBoard pool[Config::PIECE_TYPE_COUNT + 1][Config::BOARD_SIZE * Config::BOARD_SIZE * Config:: BOARD_SIZE];
-	BitBoard pawnCapturePool[Config::PCOLOUR_COUNT][Config::BOARD_SIZE * Config::BOARD_SIZE * Config::BOARD_SIZE];
+	BitBoard pool[Config::PIECE_TYPE_COUNT + 1][Config::BOARD_SIZE];
+	BitBoard pawnCapturePool[Config::PCOLOUR_COUNT][Config::BOARD_SIZE];
+};
+
+class BoardTileState
+{
+public:
+	BoardTileState();
+	BoardTileState(const BoardTileState& copy);
+
+	BoardTileState& operator= (const BoardTileState& assign);
+
+	Config::TileType GetBoardTileState(ChessVector pos) const;
+	void SetBoardTileState(Config::TileType state, ChessVector pos);
+	void SetBoardTileState(Config::TileType state, const BitBoard& bb);
+
+private:
+	Config::TileType tiles[Config::BOARD_SIZE];
 };
 
 class Board
@@ -43,5 +59,4 @@ private:
 
 	DynamicArray< Piece > pieces;
 };
-
 #endif // __BOARD_H__

@@ -10,6 +10,7 @@ class ChessVector
 public:
 	coord x,y,z;
 
+	ChessVector();
 	explicit ChessVector(const coord coordArray[]);
 	explicit ChessVector(coord x, coord y, coord z);
 	ChessVector(const ChessVector& copy);
@@ -31,6 +32,26 @@ public:
 	ChessVector& operator-();
 
 	coord GetVectorCoord() const;
+};
+
+class Rect
+{
+public:
+	int x, y, width, height;
+
+	Rect() : x(0), y(0), width(0), height(0) {}
+	Rect(int x, int y) : x(x), y(y), width(0), height(0) {}
+	Rect(int x, int y, int w, int h) : x(x), y(y), width(w), height(h) {}
+	Rect(const Rect& copy) : x(copy.x), y(copy.y), width(copy.width), height(copy.height) {}
+
+	Rect& operator=(const Rect& assign)
+	{
+		x = assign.x;
+		y = assign.y;
+		width = assign.width;
+		height = assign.height;
+		return *this;
+	}
 };
 
 class BitBoard
@@ -94,6 +115,15 @@ public:
 		for(int i = 0; i < count; ++i)
 		{
 			arr[i] = copy.arr[i];
+		}
+	}
+
+	DynamicArray(const Type srcArr[], int srcSize) : arr(nullptr), size(srcSize), count(srcSize)
+	{
+		arr = new Type[srcSize];
+		for(int i = 0; i < srcSize; ++i)
+		{
+			arr[i] = srcArr[i];
 		}
 	}
 	

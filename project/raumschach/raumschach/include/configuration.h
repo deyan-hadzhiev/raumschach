@@ -3,13 +3,59 @@
 
 typedef char coord; // The minimum type that can be used for indexing all 3D cubes in the board by single value
 
+namespace SysConfig
+{
+	enum ExitCodes
+	{
+		EXIT_NORMAL,
+		EXIT_CHESS_INIT_ERROR,
+		EXIT_SDL_ERROR,
+		EXIT_GRAPHIC_BOARD_INIT_ERROR,
+	};
+
+	enum MouseButton
+	{
+		NO_TYPE,
+		LEFT,
+		MIDDLE,
+		RIGHT,
+	};
+
+	static const int SCREEN_WIDTH = 1400; // screen width
+	static const int SCREEN_HEIGHT = 400; // screen height
+
+	static const int SCREEN_SPAWN_X = 100;
+	static const int SCREEN_SPAWN_Y = 100;
+
+	static const char WINDOW_NAME[] = "Raumschach 1.0";
+	
+	static const int MAX_PATH = 260;
+
+	struct Path
+	{
+		Path(const char* src)
+		{
+			int i = 0;
+			while(i < sizeof(name) && src[i] != '\0')
+			{
+				name[i] = src[i];
+				++i;
+			}
+			if(i < sizeof(name)) name[i] = '\0';
+			else name[i - 1] = '\0';
+		}
+
+		char name[MAX_PATH];
+	};
+};
+
 namespace Config
 {
 	// the type of player colours
 	enum PlayerColour
 	{
-		PCOLOUR_WHITE,
-		PCOLOUR_BLACK,
+		WHITE,
+		BLACK,
 		PCOLOUR_COUNT,
 	};
 
@@ -26,6 +72,16 @@ namespace Config
 		PIECE_TYPE_COUNT,
 	};
 
+	// possible states of tiles
+	enum TileType
+	{
+		TILE_NORMAL,
+		TILE_SELECTED,
+		TILE_MOVEABLE,
+		TILE_CAPTUREABLE,
+		TILE_TYPE_COUNT,
+	};
+
 	static const unsigned short PIECE_POSITION_MASK = 0x007f;
 	static const char PIECE_POSITION_LSHIFT = 0;
 	static const unsigned short PIECE_COLOUR_MASK = 0x0080;
@@ -33,7 +89,8 @@ namespace Config
 	static const unsigned short PIECE_TYPE_MASK = 0x0700;
 	static const char PIECE_TYPE_LSHIFT = 8;
 
-	static const int BOARD_SIZE = 5; // the size of the board's side
+	static const int BOARD_SIDE = 5;
+	static const int BOARD_SIZE = BOARD_SIDE * BOARD_SIDE * BOARD_SIDE; // the size of the board
 	static const char BITBOARD_SIZE = 2; // the size of the bitboard array of bitholding structs, so it could contain all the necessary coords
 
 	static const unsigned long long BITBOARD_FULL_BOARD[] = { 0xffffffffffffffff, 0xfffffffffffffff8};
@@ -42,23 +99,63 @@ namespace Config
 	static const unsigned long long BITBOARD_LEVEL = 0xffffff8000000000; // one level from the bit mask for BitBoard::GetBit(...)
 
 	static const int PLAYER_PIECES_COUNT = 20;
+
 };
 
 namespace GraphicConfig
 {
-	static const int SCREEN_WIDTH = 1350; // screen width
-	static const int SCREEN_HEIGHT = 400; // screen height
-	
-	static const unsigned long WHITE_BOARD_COLOUR = 0xffffffff; // the normal colour of white square from the board
-	static const unsigned long BLACK_BOARD_COLUOR = 0x000000ff; // the normal colour of black square from the board
+	enum Colours
+	{
+		ALPHA,
+		BLUE,
+		GREEN,
+		RED,
+		COLOURS_COUNT,
+	};
+
+	static const unsigned long WHITE_BOARD_COLOUR = 0xddddddff; // the normal colour of white square from the board
+	static const unsigned long BLACK_BOARD_COLOUR = 0x222222ff; // the normal colour of black square from the board
 	static const unsigned long SELECTED_BOARD_COLOUR = 0xffff00ff; // the colour of selecetd piece square colour
 	static const unsigned long MOVEABLE_BOARD_COLOUR = 0x00ff00ff; // the colour of moveable tiles by the currently selected piece
 	static const unsigned long CAPTURE_BOARD_COLOUR = 0xff0000ff; // the colour of threatened enemy tiles by the currently selected piece
 
-	static const unsigned long BACKGROUND_COLOUR = 0x00ccccff; // the background colour of the graphic window
+	static const unsigned long BACKGROUND_COLOUR = 0xaaaaaaff; // the background colour of the graphic window
 
 	static const int BOARD_SQUARE_SIDE_SIZE = 50; // the size of the square on the window ( pixels )
-	static const int BOARD_PADDING = 10; // the size of the board padding ( pixels )
+	static const int BOARD_PADDING = 20; // the size of the board padding ( pixels )
+	
+	static const SysConfig::Path PIECE_TEXTURE_PATHS [Config::PCOLOUR_COUNT][Config::PIECE_TYPE_COUNT] =
+	{
+		// white pieces
+		{
+			"",
+			"data/pieces/white/small_king.bmp",
+			"data/pieces/white/small_queen.bmp",
+			"data/pieces/white/small_rook.bmp",
+			"data/pieces/white/small_bishop.bmp",
+			"data/pieces/white/small_knight.bmp",
+			"data/pieces/white/small_unicorn.bmp",
+			"data/pieces/white/small_pawn.bmp",
+		},
+
+		// black pieces
+		{
+			"",
+			"data/pieces/black/small_king.bmp",
+			"data/pieces/black/small_queen.bmp",
+			"data/pieces/black/small_rook.bmp",
+			"data/pieces/black/small_bishop.bmp",
+			"data/pieces/black/small_knight.bmp",
+			"data/pieces/black/small_unicorn.bmp",
+			"data/pieces/black/small_pawn.bmp",
+		},
+	};
+
+	static const unsigned long TEXTURE_TRANSPARENT_COLOURS [Config::PCOLOUR_COUNT][2] =
+	{
+		{0x00000000, 0xffffff00},
+		{0xffffff00, 0xffffff00},
+	};
 };
 
 #endif // __CONFIGURAION_H__

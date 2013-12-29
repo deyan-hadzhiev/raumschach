@@ -5,6 +5,9 @@
 #include "configuration.h"
 #include "constants.h"
 #include "board.h"
+#include "render.h"
+#include "raumschach.h"
+#include "player.h"
 
 static const unsigned screenWidth = 640;
 static const unsigned screenHeight = 480;
@@ -28,14 +31,14 @@ void PrintBitBoard( const BitBoard& bb)
 void PrintFormatedBB( const BitBoard& bb)
 {
 	using namespace std;
-	for( char level = 0; level < Config::BOARD_SIZE; ++level)
+	for( char level = 0; level < Config::BOARD_SIDE; ++level)
 	{
 		unsigned long long levelBits = bb.GetBits( level * 25, Config::BITBOARD_LEVEL);
-		for( int row = 0; row < Config::BOARD_SIZE; ++row)
+		for( int row = 0; row < Config::BOARD_SIDE; ++row)
 		{
-			for(int column = 0; column < Config::BOARD_SIZE; ++column)
+			for(int column = 0; column < Config::BOARD_SIDE; ++column)
 			{
-				std::cout << (((levelBits << (row * Config::BOARD_SIZE + column)) & 0x8000000000000000) ? "1" : "0");
+				std::cout << (((levelBits << (row * Config::BOARD_SIDE + column)) & 0x8000000000000000) ? "1" : "0");
 			}
 			cout << endl;
 		}
@@ -92,103 +95,66 @@ void ApplySurface(int x, int y, SDL_Texture *tex, SDL_Renderer *rend){
 }
 
 int main(int argc, char **argv){
+
+	Player * white = new Player;
+	Player * black = new Player;
+
+	Raumschach rchess;
+
+	rchess.Initialize(white, black);
+	rchess.Start();
+
+	delete white;
+	delete black;
+
+	return 0;
+	Render render( SysConfig::SCREEN_WIDTH, SysConfig::SCREEN_HEIGHT);
+
+	Texture* tex = new Texture();
+	if(tex->LoadTexture("data/pieces/black/small_knight.bmp"))
+	{
+		tex->SetPixelFormat(render.GetPixelFormat());
+		tex->InitTransparent(Colour(0xffffff00), Colour(0xffffff00));
+		tex->RenderTexture(&render);
+	}
+
+	Texture* tex2 = new Texture();
+	if(tex2->LoadTexture("data/pieces/white/small_knight.bmp"))
+	{
+		tex2->SetPixelFormat(render.GetPixelFormat());
+		tex2->InitTransparent(Colour(0x00000000), Colour(0xffffff00));
+		tex2->RenderTexture(&render);
+	}
+
+	SDL_Surface* pawnSurface = LoadSurface("data/pieces/black/small_knight.bmp");
+
+	int w = pawnSurface->w;
+	int h = pawnSurface->h;
+
+	//SDL_Surface* formattedPawnSurface = SDL_CreateRGBSurface( 0, w, h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+	//SDL_PixelFormat* fmt = formattedPawnSurface->format; //373694468
+
+	render.BeginDraw();
+
+	render.DrawRectangle(Colour(0x808080ff), 0, 0, render.GetWidth(), render.GetHeight());
+	render.DrawTexture(tex, 10, 10);
+	render.DrawTexture(tex2, 40, 40);
+	//SDL_RenderCopy(render.renderer, pawn, NULL, &pos);
+
+	render.EndDraw();
+
+	//SDL_RenderCopy(render.renderer, pawn, NULL, &pos);
+	//SDL_RenderPresent(render.renderer);
+
+	SDL_Delay( 10000);
+
+	return 0;
+
 	using namespace std;
 	if (SDL_Init(SDL_INIT_VIDEO) != 0){
 		std::cout << "SDL_Init Error: " << SDL_GetError() << std::endl;
 		return 1;
 	}
-
-	unsigned long long bits[] = {0xf0f0f0f0, 0xfedcba9876543210};
-	unsigned long long bits2[] = {0xcccccccccccccccc, 0xcccccccccccccccc};
-	unsigned long long bits3[] = {0xfedcba9876543210, 0x0123456789abcdef};
-	unsigned long long fullBits[] = { 0xffffffffffffffff, 0xffffffffffffffff};
-
-	BitBoard test(bits);
-	PrintBitBoard( test);
-	BitBoard test2(bits2);
-	PrintBitBoard( test2);
-
-	BitBoard andRes = test & test2;
-	
-	cout << "and" << endl;
-	PrintBitBoard( andRes);
-	cout << "test after operation" << endl;
-	cout << "or" << endl;
-	PrintBitBoard( test | test2);
-	cout << "xor" << endl;
-	PrintBitBoard( test ^ test2);
-
-	cout << "test" << endl;
-	PrintBitBoard( test);
-	
-	BitBoard test3( bits3);
-	cout << "test3" << endl;
-	PrintBitBoard( test3);
-	test3.SetBits( 0xcc00000000000000, 60, 0xff00000000000000);
-	PrintBitBoard( test3);
-
-	cout << (test3 == test2 ? "true" : "false" ) << endl;
-	cout << (test3 == test3 ? "true" : "false" ) << endl;
-
-	test.SetBits( 0UL, 0, 0xffffffffffffffff);
-	test.SetBits( 0UL, 64, 0xffffffffffffffff);
-
-	int count = COUNT_OF(bits);
-	int otherCount = COUNT_OF(Const::PIECE_WORTH);
-
-	cout << sizeof( BitBoard) << endl;
-	cout << sizeof( BitBoardMovePool) << endl;
-
-	BitBoardMovePool* pool = new BitBoardMovePool;
-	pool->Initalize();
-
-	cout << "BitBoard Debug" << endl;
-
-	PrintFormatedBB( pool->GetPieceMoves(Piece(Config::QUEEN, Config::PCOLOUR_BLACK, ChessVector(0, 0, 0))));
-
-	coord bitcount = BitBoard( Config::BITBOARD_FULL_BOARD).GetBitCount();
-	coord vectors[][3] = {{3,3,4}, {4,4,3}};
-	size_t vecSize = sizeof( vectors);
-	ChessVector some(123);
-	
-	DynamicArray<int> dynArr(10);
-
-	auto PrintDynArray = [] (DynamicArray<int> arr) {
-		for( int i = 0; i < arr.Count(); ++i)
-		{
-			printf("%d ", arr[i]);
-		}
-		printf("\n");
-	};
-
-	cout << "empty array" << endl;
-	PrintDynArray( dynArr);
-
-	cout << "add 5 elements" << endl;
-	for(int i = 0; i < 5; ++i)
-	{
-		dynArr += i;
-	}
-	cout << "count " << dynArr.Count() << endl;
-	PrintDynArray( dynArr);
-
-	cout << "add 10 elements" << endl;
-	for( int i = 0; i < 10; ++i)
-	{
-		dynArr += i*2;
-	}
-	cout << "count " << dynArr.Count() << endl;
-	PrintDynArray( dynArr);
-
-	cout << "removing elements" << endl;
-	dynArr.RemoveItem( 4);
-	dynArr.RemoveItem( 9);
-
-	PrintDynArray( dynArr);
-
-	(dynArr += 5) += 8;
-
-	PrintDynArray( dynArr);
 
 
 	//return 0;
@@ -237,50 +203,6 @@ int main(int argc, char **argv){
 	SDL_RenderCopy( renderer, texture, NULL, NULL);
 	SDL_RenderPresent( renderer);
 
-	SDL_Surface* pawnSurface = LoadSurface("data/pieces/black/small_knight.bmp");
-
-	int w = pawnSurface->w;
-	int h = pawnSurface->h;
-
-	//SDL_Surface* formattedPawnSurface = SDL_CreateRGBSurface( 0, w, h, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
-	//SDL_PixelFormat* fmt = formattedPawnSurface->format; //373694468
-
-	SDL_PixelFormat fmt;
-	fmt.format = SDL_PIXELFORMAT_RGBA8888;
-	fmt.Ashift = 0;
-	fmt.Amask = 0x000000ff;
-	fmt.Aloss = 0;
-	fmt.Rshift = 24;
-	fmt.Rmask = 0xff000000;
-	fmt.Rloss = 0;
-	fmt.Gshift = 16;
-	fmt.Gmask = 0x00ff0000;
-	fmt.Gloss = 0;
-	fmt.Bshift = 8;
-	fmt.Bmask = 0x0000ff00;
-	fmt.Bloss = 0;
-	fmt.palette = NULL;
-	fmt.padding[0] = '\0';
-	fmt.padding[1] = '\0';
-	fmt.BitsPerPixel = 32;
-	fmt.BytesPerPixel = 4;
-
-	SDL_Surface* formattedPawn = SDL_ConvertSurface( pawnSurface, &fmt, 0);
-
-	Uint32* formattedPixels = (Uint32*) formattedPawn->pixels;
-
-	for(int i = 0; i < w*h; ++i)
-	{
-		if( formattedPixels[i] != 0x000000ff)
-		{
-			formattedPixels[i] = 0x000000ff - ((formattedPixels[i] & 0xff00) >> 8);
-		}
-	}
-
-	SDL_Texture* pawn = SDL_CreateTextureFromSurface(renderer, formattedPawn);
-	SDL_SetTextureBlendMode( pawn, SDL_BLENDMODE_BLEND);
-	SDL_FreeSurface(pawnSurface);
-
 	bool quit = false;
 	SDL_Event evnt;
 	int counter = 0;
@@ -310,13 +232,11 @@ int main(int argc, char **argv){
 
 		SDL_RenderClear( renderer);
 		SDL_RenderCopy( renderer, texture, NULL, NULL);
-		ApplySurface( 10, 10, pawn, renderer);
 		SDL_RenderPresent( renderer);
 		std::cout << ++counter << std::endl;
 	}
 
 	SDL_DestroyTexture( texture);
-	SDL_DestroyTexture( pawn);
 
 	SDL_DestroyRenderer( renderer);
 	SDL_DestroyWindow( window);
