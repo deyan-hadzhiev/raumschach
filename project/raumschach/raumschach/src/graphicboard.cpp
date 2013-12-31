@@ -66,13 +66,14 @@ void GraphicBoard::Initialize()
 
 	backgroundColour = Colour(GraphicConfig::BACKGROUND_COLOUR);
 	
-	tileNormalColours[Config::WHITE] = Colour(GraphicConfig::WHITE_BOARD_COLOUR);
-	tileNormalColours[Config::BLACK] = Colour(GraphicConfig::BLACK_BOARD_COLOUR);
+	for(int colour = 0; colour < Config::PCOLOUR_COUNT; ++colour)
+	{
+		for(int tileType = 0; tileType < Config::TILE_TYPE_COUNT; ++tileType)
+		{
+			tileColours[colour][tileType] = GraphicConfig::BOARD_COLOURS[colour][tileType];
+		}
+	}
 
-	tileColours[Config::TILE_NORMAL] = Colour();
-	tileColours[Config::TILE_SELECTED] = Colour(GraphicConfig::SELECTED_BOARD_COLOUR);
-	tileColours[Config::TILE_MOVEABLE] = Colour(GraphicConfig::MOVEABLE_BOARD_COLOUR);
-	tileColours[Config::TILE_CAPTUREABLE] = Colour(GraphicConfig::CAPTURE_BOARD_COLOUR);
 }
 
 Texture* GraphicBoard::LoadTexture(const char* filename)
@@ -154,15 +155,9 @@ void GraphicBoard::DrawBoard(const Board * board, const BoardTileState * tileSta
 		ChessVector posVec(pos);
 		
 		TileType tileType = tileState->GetBoardTileState(posVec);
-		if(tileType != TILE_NORMAL)
-		{
-			render->DrawRectangle(tileColours[tileType], BoardToScreen( posVec));
-		}
-		else
-		{
-			short colour = (posVec.x + posVec.y + posVec.z) & 1;
-			render->DrawRectangle(tileNormalColours[colour], BoardToScreen( posVec));
-		}
+		char colour = (posVec.x + posVec.y + posVec.z) & 1;
+
+		render->DrawRectangle(tileColours[colour][tileType], BoardToScreen(posVec));
 
 		Piece tilePiece = board->GetPiece(posVec);
 		if(tilePiece.GetType() != NO_TYPE)
@@ -175,7 +170,6 @@ void GraphicBoard::DrawBoard(const Board * board, const BoardTileState * tileSta
 			int y = screenRect.y + (screenRect.height - texture->GetHeight()) / 2;
 			render->DrawTexture(texture, x, y);
 		}
-
 	}
 
 	render->EndDraw();

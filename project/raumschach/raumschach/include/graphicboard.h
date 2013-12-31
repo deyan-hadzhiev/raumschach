@@ -25,8 +25,7 @@ private:
 
 	Texture* pieceTextures[Config::PCOLOUR_COUNT][Config::PIECE_TYPE_COUNT];
 	Colour backgroundColour;
-	Colour tileNormalColours[Config::PCOLOUR_COUNT];
-	Colour tileColours[Config::TILE_TYPE_COUNT];
+	Colour tileColours[Config::PCOLOUR_COUNT][Config::TILE_TYPE_COUNT];
 
 	// not owned object - no destruction
 	Render * render;

@@ -113,13 +113,14 @@ namespace GraphicConfig
 		COLOURS_COUNT,
 	};
 
-	static const unsigned long WHITE_BOARD_COLOUR = 0xddddddff; // the normal colour of white square from the board
-	static const unsigned long BLACK_BOARD_COLOUR = 0x222222ff; // the normal colour of black square from the board
-	static const unsigned long SELECTED_BOARD_COLOUR = 0xffff00ff; // the colour of selecetd piece square colour
-	static const unsigned long MOVEABLE_BOARD_COLOUR = 0x00ff00ff; // the colour of moveable tiles by the currently selected piece
-	static const unsigned long CAPTURE_BOARD_COLOUR = 0xff0000ff; // the colour of threatened enemy tiles by the currently selected piece
+	static const unsigned long BOARD_COLOURS[Config::PCOLOUR_COUNT][Config::TILE_TYPE_COUNT] =
+	{
+		// { normal, selected, moveable, capturable}
+		{ 0xccccccff, 0x999900ff, 0x00aa00ff, 0xaa0000ff}, // white
+		{ 0x333333ff, 0x777700ff, 0x006600ff, 0x660000ff}, // black
+	};
 
-	static const unsigned long BACKGROUND_COLOUR = 0xaaaaaaff; // the background colour of the graphic window
+	static const unsigned long BACKGROUND_COLOUR = 0x888888ff; // the background colour of the graphic window
 
 	static const int BOARD_SQUARE_SIDE_SIZE = 50; // the size of the square on the window ( pixels )
 	static const int BOARD_PADDING = 20; // the size of the board padding ( pixels )
