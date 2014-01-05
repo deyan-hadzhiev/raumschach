@@ -124,6 +124,15 @@ BitBoard::BitBoard(const BitBoard& copy)
 	}
 }
 
+BitBoard::BitBoard(ChessVector pos)
+{
+	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
+	{
+		bits[i] = 0UL;
+	}
+	SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+}
+
 BitBoard& BitBoard::operator=(const BitBoard& assign)
 {
 	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
@@ -139,7 +148,7 @@ BitBoard& BitBoard::operator~()
 	{
 		bits[i] = ~ bits[i];
 	}
-	return *this;
+	return (*this);
 }
 
 BitBoard& BitBoard::operator&=(const BitBoard& rhs)
@@ -167,6 +176,16 @@ BitBoard& BitBoard::operator^=(const BitBoard& rhs)
 		bits[i] ^= rhs.bits[i];
 	}
 	return *this;
+}
+
+const BitBoard operator~(const BitBoard& lhs)
+{
+	BitBoard result;
+	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
+	{
+		result.bits[i] = ~(lhs.bits[i]);
+	}
+	return result;
 }
 
 const BitBoard operator&(const BitBoard& lhs, const BitBoard& rhs)
@@ -232,7 +251,7 @@ unsigned long long BitBoard::GetBits( coord offset, unsigned long long mask) con
 	char bitOffset = offset % SIZE;
 	unsigned long long srcBitMask = 0xffffffffffffffff << bitOffset;
 	unsigned long long srcBits = (bits[bitn] << bitOffset) & srcBitMask;
-	if( bitn < Config::BITBOARD_SIZE)
+	if( bitn < Config::BITBOARD_SIZE && offset)
 	{
 		srcBits |= (bits[bitn + 1] >> (SIZE - bitOffset)) & ~ srcBitMask;
 	}
@@ -246,7 +265,7 @@ void BitBoard::SetBits( unsigned long long srcBits, coord offset, unsigned long 
 	unsigned long long destBitMask = mask >> bitOffset;
 	unsigned long long destBits = srcBits >> bitOffset;
 	bits[bitn] = (bits[bitn] & ~ destBitMask) | destBits & destBitMask;
-	if( bitn < Config::BITBOARD_SIZE)
+	if( bitn < Config::BITBOARD_SIZE && offset)
 	{
 		destBitMask = mask << (SIZE - bitOffset);
 		destBits = srcBits << (SIZE - bitOffset);
@@ -262,4 +281,36 @@ coord BitBoard::GetBitCount() const
 		count += BitCount( bits[i]);
 	}
 	return count;
+}
+
+//debug stuff
+#include <stdio.h>
+void BitBoard::PrintBitBoard() const
+{
+	char line[(Config::BOARD_SIDE + 1) * Config::BOARD_SIDE + 1] = "";
+	const int lastChar = (Config::BOARD_SIDE + 1) * Config::BOARD_SIDE;
+	line[lastChar] = '\0';
+	const int columnSize = Config::BOARD_SIDE + 1;
+	const int levelSize = Config::BOARD_SIDE * Config::BOARD_SIDE;
+	for(int l = 0; l < Config::BOARD_SIDE; ++l)
+	{
+		for(int column = 0; column < lastChar; ++column)
+		{
+			if((column + 1) % columnSize == 0)
+			{
+				line[column] = ' ';
+			}
+			else
+			{
+				int level = column / columnSize;
+				int ch = (column - level) % Config::BOARD_SIDE;
+				int offset = level * levelSize + l * Config::BOARD_SIDE + ch;
+				unsigned long long bit = GetBits(offset);
+				line[column] = ((bit & Config::BITBOARD_BIT) != 0UL ? '1' : '0');
+			}
+		}
+		line[lastChar] = '\0';
+		printf("%s\n", line);
+	}
+	printf("\n");
 }

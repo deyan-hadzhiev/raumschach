@@ -3,6 +3,9 @@
 
 #include "configuration.h"
 
+//for debug
+#include <stdio.h>
+
 #define	COUNT_OF(x) sizeof((x)) / sizeof((x[0]))
 
 class ChessVector
@@ -63,6 +66,7 @@ public:
 	BitBoard();
 	BitBoard(const unsigned long long sBits[]);
 	BitBoard(const BitBoard& copy);
+	explicit BitBoard(ChessVector pos);
 	
 	BitBoard& operator=(const BitBoard& assign);
 
@@ -71,6 +75,7 @@ public:
 	BitBoard& operator|=(const BitBoard& rhs);
 	BitBoard& operator^=(const BitBoard& rhs);
 
+	friend const BitBoard operator~(const BitBoard& lhs);
 	friend const BitBoard operator&(const BitBoard& lhs, const BitBoard& rhs);
 	friend const BitBoard operator|(const BitBoard& lhs, const BitBoard& rhs);
 	friend const BitBoard operator^(const BitBoard& lhs, const BitBoard& rhs);
@@ -94,6 +99,9 @@ public:
 		}
 		return count;
 	}
+
+	//debuging purposes
+	void PrintBitBoard() const;
 
 private:
 	static const coord SIZE;

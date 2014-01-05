@@ -32,6 +32,8 @@ private:
 	BoardTileState * tileState;
 
 	Piece selectedPiece;
+	BitBoard selectedPieceMoves;
+	Config::PlayerColour currentPlayer;
 
 	// not owned, so no destruction
 	Player * whitePlayer;

@@ -38,6 +38,16 @@ Piece& Piece::operator=(const Piece& assign)
 	return *this;
 }
 
+bool operator==(const Piece& lhs, const Piece& rhs)
+{
+	return lhs.flags == rhs.flags;
+}
+
+bool operator!=(const Piece& lhs, const Piece& rhs)
+{
+	return lhs.flags != rhs.flags;
+}
+
 ChessVector Piece::GetPositionVector() const
 {
 	return ChessVector( GetPositionCoord());

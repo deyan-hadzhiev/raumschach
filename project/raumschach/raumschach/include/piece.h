@@ -14,6 +14,9 @@ public:
 
 	Piece& operator=(const Piece& assign);
 
+	friend bool operator==(const Piece& lhs, const Piece& rhs);
+	friend bool operator!=(const Piece& lhs, const Piece& rhs);
+
 	ChessVector GetPositionVector() const;
 	void SetPositionVector(ChessVector pos);
 	coord GetPositionCoord() const;
@@ -30,7 +33,7 @@ public:
 	friend bool operator<(const Piece& lhs, const Piece& rhs);
 private:
 
-	void SetFlag(unsigned short flag,unsigned short mask, char offset)
+	void SetFlag(unsigned short flag, unsigned short mask, char offset)
 	{
 		flags = (flags & ~ mask) | (flag << offset);
 	}

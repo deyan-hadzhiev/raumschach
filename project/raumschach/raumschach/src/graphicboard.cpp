@@ -6,7 +6,8 @@
 
 GraphicBoard::GraphicBoard(Render * render)
 	:
-	render(render)
+	render(render),
+	fullRefresh(true)
 {
 	for(int i = 0; i < COUNT_OF(pieceTextures); ++i)
 	{
@@ -144,33 +145,46 @@ Rect GraphicBoard::BoardToScreen(ChessVector pos)
 void GraphicBoard::DrawBoard(const Board * board, const BoardTileState * tileState)
 {
 	using namespace Config;
-	render->BeginDraw();
 
 	//first draw the background
-	render->DrawRectangle( backgroundColour, 0, 0, render->GetWidth(), render->GetHeight());
+	if(fullRefresh)
+	{
+		render->BeginDraw();
+		render->DrawRectangle( backgroundColour, 0, 0, render->GetWidth(), render->GetHeight());
+	}
 
 	//draw all the tiles and draw a piece if there is one
 	for(coord pos = 0; pos < BOARD_SIZE; ++pos)
 	{
 		ChessVector posVec(pos);
-		
-		TileType tileType = tileState->GetBoardTileState(posVec);
-		char colour = (posVec.x + posVec.y + posVec.z) & 1;
-
-		render->DrawRectangle(tileColours[colour][tileType], BoardToScreen(posVec));
-
-		Piece tilePiece = board->GetPiece(posVec);
-		if(tilePiece.GetType() != NO_TYPE)
+		if(tileState->GetChangedTile(posVec) || fullRefresh)
 		{
-			const PlayerColour colour = tilePiece.GetColour();
-			const PieceType type = tilePiece.GetType();
-			const Texture * texture = pieceTextures[colour][type];
-			Rect screenRect = BoardToScreen(posVec);
-			int x = screenRect.x + (screenRect.width - texture->GetWidth()) / 2;
-			int y = screenRect.y + (screenRect.height - texture->GetHeight()) / 2;
-			render->DrawTexture(texture, x, y);
+			TileType tileType = tileState->GetBoardTileState(posVec);
+			char colour = (posVec.x + posVec.y + posVec.z) & 1;
+
+			render->DrawRectangle(tileColours[colour][tileType], BoardToScreen(posVec));
+
+			Piece tilePiece = board->GetPiece(posVec);
+			if(tilePiece.GetType() != NO_TYPE)
+			{
+				const PlayerColour colour = tilePiece.GetColour();
+				const PieceType type = tilePiece.GetType();
+				const Texture * texture = pieceTextures[colour][type];
+				Rect screenRect = BoardToScreen(posVec);
+				int x = screenRect.x + (screenRect.width - texture->GetWidth()) / 2;
+				int y = screenRect.y + (screenRect.height - texture->GetHeight()) / 2;
+				render->DrawTexture(texture, x, y);
+			}
 		}
 	}
 
+	// we have refreshed everything, now we optimize by stoping further full refreshments
+	if(fullRefresh) fullRefresh = false;
+
 	render->EndDraw();
+}
+
+void GraphicBoard::Refresh(bool flag)
+{
+	fullRefresh = flag;
 }

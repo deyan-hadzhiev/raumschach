@@ -14,7 +14,10 @@ Raumschach::Raumschach()
 	movePool(nullptr),
 	tileState(nullptr),
 	whitePlayer(nullptr),
-	blackPlayer(nullptr)
+	blackPlayer(nullptr),
+	selectedPiece(),
+	selectedPieceMoves(),
+	currentPlayer(Config::WHITE)
 {}
 
 Raumschach::~Raumschach()
@@ -92,33 +95,35 @@ void Raumschach::Start()
 void Raumschach::IdleDrawBoard()
 {
 	graphicBoard->DrawBoard(board, tileState);
+	tileState->SetChanged(false);
 }
 
 void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 {
-	// if there is currently a selected piece
-	if(selectedPiece.GetType() != Config::NO_TYPE)
+	if(button == SysConfig::LEFT && GraphicBoard::OnBoard(x, y))
 	{
-		if(button == SysConfig::LEFT && GraphicBoard::OnBoard(x, y))
+		ChessVector clickedPos = GraphicBoard::ScreenToBoard(Rect(x, y));
+		Piece clickedPiece = board->GetPiece(clickedPos);
+		if(clickedPiece.GetType() != Config::NO_TYPE && clickedPiece.GetColour() == currentPlayer)
 		{
-
+			selectedPiece = clickedPiece;
+			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+			BitBoard opposingPieces = board->GetPiecesBitBoard( Config::GetOppositePlayer(selectedPiece.GetColour()));
+			tileState->SetBoardTileState(Config::TILE_SELECTED, clickedPos);
+			selectedPieceMoves = movePool->GetPieceMoves(selectedPiece, board->GetPiecesBitBoard(selectedPiece.GetColour()), opposingPieces);
+			tileState->SetBoardTileState(Config::TILE_MOVEABLE, selectedPieceMoves);
+			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, selectedPieceMoves & opposingPieces);
 		}
-		else
+		else if(selectedPiece.GetType() != Config::NO_TYPE && board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves))
 		{
 			selectedPiece = Piece();
 			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+			currentPlayer = Config::GetOppositePlayer(currentPlayer);
 		}
 	}
-	else if(button == SysConfig::LEFT && GraphicBoard::OnBoard(x, y))
+	else
 	{
-
-		ChessVector clickedPos = GraphicBoard::ScreenToBoard(Rect(x, y));
-		selectedPiece = board->GetPiece(clickedPos);
-		if(selectedPiece.GetType() != Config::NO_TYPE)
-		{
-			tileState->SetBoardTileState(Config::TILE_SELECTED, clickedPos);
-			BitBoard availableMoves = movePool->GetPieceMoves(selectedPiece);
-			tileState->SetBoardTileState(Config::TILE_MOVEABLE, availableMoves);
-		}
+		selectedPiece = Piece();
+		tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
 	}
 }

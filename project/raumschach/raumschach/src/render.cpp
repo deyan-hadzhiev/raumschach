@@ -389,9 +389,6 @@ void Render::ErrorExit()
 	Error( SDL_GetError()).Post().Exit(SysConfig::EXIT_SDL_ERROR);
 }
 
-//************************ for DEBUG ONLY **************************************
-#include <iostream>
-
 void Render::StartEventLoop(Raumschach* handler)
 {
 	using namespace std;
@@ -412,9 +409,7 @@ void Render::StartEventLoop(Raumschach* handler)
 			case SDL_MOUSEBUTTONDOWN:
 				{
 					SysConfig::MouseButton button = (SysConfig::MouseButton) evnt.button.button;
-					cout << "Mouse clicked at: " << evnt.button.x << " " << evnt.button.y << endl;
 					handler->MouseClick(button, evnt.button.x, evnt.button.y);
-					cout << "Update finished" << endl;
 					refresh = true;
 					break;
 				}

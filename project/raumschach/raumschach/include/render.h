@@ -104,5 +104,4 @@ private:
 	int frameHeight;
 };
 
-
 #endif // __RENDER_H__

@@ -21,8 +21,8 @@ namespace SysConfig
 		RIGHT,
 	};
 
-	static const int SCREEN_WIDTH = 1400; // screen width
-	static const int SCREEN_HEIGHT = 400; // screen height
+	static const int SCREEN_WIDTH = 1370; // screen width
+	static const int SCREEN_HEIGHT = 290; // screen height
 
 	static const int SCREEN_SPAWN_X = 100;
 	static const int SCREEN_SPAWN_Y = 100;
@@ -57,7 +57,14 @@ namespace Config
 		WHITE,
 		BLACK,
 		PCOLOUR_COUNT,
+		BOTH_COLOURS,
 	};
+
+	inline PlayerColour GetOppositePlayer(PlayerColour col)
+	{
+		return (col == WHITE ? BLACK : WHITE);
+	}
+
 
 	enum PieceType
 	{
