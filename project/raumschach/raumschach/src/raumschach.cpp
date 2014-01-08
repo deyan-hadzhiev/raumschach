@@ -74,7 +74,7 @@ void Raumschach::Initialize(Player * white, Player * black)
 	}
 	movePool->Initalize();
 
-	board = new Board( DynamicArray< Piece >(Const::INITIAL_PIECES, COUNT_OF(Const::INITIAL_PIECES)));
+	board = new Board( DynamicArray< Piece >(Const::INITIAL_PIECES, COUNT_OF(Const::INITIAL_PIECES)), movePool);
 	if(! board)
 	{
 		Error("ERROR: Failed to initialize the main board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
@@ -113,17 +113,38 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 			selectedPieceMoves = movePool->GetPieceMoves(selectedPiece, board->GetPiecesBitBoard(selectedPiece.GetColour()), opposingPieces);
 			tileState->SetBoardTileState(Config::TILE_MOVEABLE, selectedPieceMoves);
 			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, selectedPieceMoves & opposingPieces);
+			if(board->KingCheckState(currentPlayer))
+			{
+				Piece playerKing = board->GetKing(currentPlayer);
+				tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, playerKing.GetPositionVector());
+			}
 		}
-		else if(selectedPiece.GetType() != Config::NO_TYPE && board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves))
+		else if(selectedPiece.GetType() != Config::NO_TYPE)
 		{
-			selectedPiece = Piece();
-			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
-			currentPlayer = Config::GetOppositePlayer(currentPlayer);
+			// if this is a valid move make it
+			if(board->ValidMove(selectedPiece, clickedPos, selectedPieceMoves))
+			{
+				board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves, true);
+				Config::PlayerColour oppositePlayerColour = Config::GetOppositePlayer(currentPlayer);
+				selectedPiece = Piece();
+				tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+				if(board->KingCheckState(oppositePlayerColour))
+				{
+					Piece oppositeKing = board->GetKing(oppositePlayerColour);
+					tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+				}
+				currentPlayer = oppositePlayerColour;
+			}
 		}
 	}
 	else
 	{
 		selectedPiece = Piece();
 		tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+		if(board->KingCheckState(currentPlayer))
+		{
+			Piece oppositeKing = board->GetKing(currentPlayer);
+			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+		}
 	}
 }

@@ -118,6 +118,18 @@ BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec
 	return result;
 }
 
+BitBoard BitBoardMovePool::GetPieceFullMoves(Piece p) const
+{
+	if(p.GetType() != Config::PAWN)
+	{
+		return pool[p.GetType()][p.GetPositionCoord()];
+	}
+	else
+	{
+		return pool[p.GetType() + p.GetColour()][p.GetPositionCoord()] | pawnCapturePool[p.GetColour()][p.GetPositionCoord()];
+	}
+}
+
 BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces) const
 {
 	BitBoard result;
@@ -148,15 +160,19 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 }
 
 Board::Board()
-	: pieces(Config::PLAYER_PIECES_COUNT * 2)
+	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(nullptr)
 {}
 
-Board::Board(const DynamicArray< Piece >& pieceArray)
-	: pieces(pieceArray)
+Board::Board(BitBoardMovePool * pool)
+	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(pool)
+{}
+
+Board::Board(const DynamicArray< Piece >& pieceArray, BitBoardMovePool * pool)
+	: pieces(pieceArray), movePool(pool)
 {}
 
 Board::Board(const Board& copy)
-	: pieces(copy.pieces)
+	: pieces(copy.pieces), movePool(copy.movePool)
 {}
 
 Board& Board::operator=(const Board& assign)
@@ -164,6 +180,7 @@ Board& Board::operator=(const Board& assign)
 	if(this != &assign)
 	{
 		pieces = assign.pieces;
+		movePool = assign.movePool;
 	}
 	return *this;
 }
@@ -188,37 +205,162 @@ BitBoard Board::GetPiecesBitBoard(Config::PlayerColour colour) const
 	return result;
 }
 
-bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoardMovePool * movePool)
+bool Board::ValidMove(Piece piece, ChessVector pos) const
+{
+	bool result = false;
+	if(movePool)
+	{
+		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour()))); 
+		result = ValidMove(piece, pos, availableMoves);
+	}
+	return result;
+}
+
+bool Board::ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const
+{
+	bool result = false;
+	int pieceIndex = GetPieceIndex(piece.GetPositionVector());
+	if(pieceIndex >= 0 && pieces[pieceIndex] == piece && (availableMoves & BitBoard(pos)))
+	{
+		// the piece exists and can be moved to the destination, so now we create a copy board to simulate the move
+		Board movedBoard(*this);
+		int destinationIndex = movedBoard.GetPieceIndex(pos);
+		movedBoard.pieces[pieceIndex].SetPositionVector(pos);
+		if(destinationIndex >= 0)
+		{
+			movedBoard.pieces.RemoveItem(destinationIndex);
+		}
+
+		// finally we test the check state after the move
+		result = ! movedBoard.KingCheckState(piece.GetColour());
+
+	}
+	return result;
+}
+
+bool Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
 {
 	bool result = false;
 	if(movePool)
 	{
 		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())));
-		result = MovePiece(piece, pos, availableMoves);
+		result = MovePiece(piece, pos, availableMoves, pretested);
 	}
 	return result;
 }
 
-bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves)
+bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested)
 {
-	bool result = false;
+	bool result = true;
 	//check if this piece is on the board
-	int pieceIndex = GetPieceIndex(piece.GetPositionVector());
-	if(pieceIndex >= 0 && pieces[pieceIndex] == piece)
+	if(! pretested)
 	{
+		result = ValidMove(piece, pos, availableMoves);
+	}
+
+	if(result)
+	{
+		int pieceIndex = GetPieceIndex(piece.GetPositionVector());
+		// we must obtain the destination before actually moving the piece
 		int destinationIndex = GetPieceIndex(pos);
-		BitBoard destBitBoard(pos);
-		if(destBitBoard & availableMoves)
+
+		// set the new position of the piece
+		pieces[pieceIndex].SetPositionVector(pos);
+
+		if(destinationIndex >= 0)
 		{
-			pieces[pieceIndex].SetPositionVector(pos);
-			if(destinationIndex >= 0)
-			{
-				pieces.RemoveItem(destinationIndex);
-			}
-			result = true;
+			pieces.RemoveItem(destinationIndex);
 		}
 	}
+
 	return result;
+}
+
+bool Board::KingCheckState(Config::PlayerColour colour) const
+{
+	bool check = false;
+	int kingIndex = -1;
+	bool found = false;
+	for(int i = 0; i < pieces.Count() && !found; ++i)
+	{
+		if(pieces[i].GetType() == Config::KING && pieces[i].GetColour() == colour)
+		{
+			kingIndex = i;
+			found = true;
+		}
+	}
+	if(kingIndex >= 0)
+	{
+		Piece king = pieces[kingIndex];
+		if(TileThreatened(king.GetPositionVector(), Config::GetOppositePlayer(king.GetColour())))
+		{
+			check = true;
+		}
+	}
+	return check;
+}
+
+bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
+{
+	bool threatened = false;
+	if( movePool)
+	{
+		DynamicArray< Piece > passivePieces;
+		DynamicArray< Piece > activePieces;
+		for(int i = 0; i < pieces.Count(); ++i)
+		{
+			if(pieces[i].GetColour() == colour)
+			{
+				activePieces += pieces[i];
+			}
+			else
+			{
+				passivePieces += pieces[i];
+			}
+		}
+
+		BitBoard activeBitBoard;
+		for(int i = 0; i < activePieces.Count(); ++i)
+			activeBitBoard.SetBits(Config::BITBOARD_BIT, activePieces[i].GetPositionCoord());
+
+		BitBoard passiveBitBoard;
+		for(int i = 0; i < passivePieces.Count(); ++i)
+			passiveBitBoard.SetBits(Config::BITBOARD_BIT, passivePieces[i].GetPositionCoord());
+
+		// we set the position bit of the checked tile, se we can get proper results from pool->GetPieceMoves(...) for pawns
+		passiveBitBoard.SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+
+		BitBoard positionBitBoard(pos);
+		for(int i = 0; i < activePieces.Count() && !threatened; ++i)
+		{
+			BitBoard pieceVisibility(movePool->GetPieceFullMoves(activePieces[i]));
+			// if this tile is visible, we need to make better check, by getting the proper move bboard
+			if(positionBitBoard & pieceVisibility)
+			{
+				BitBoard pieceMoves(movePool->GetPieceMoves(activePieces[i], activeBitBoard, passiveBitBoard));
+				if(positionBitBoard & pieceMoves)
+				{
+					threatened = true;
+				}
+			}
+		}
+	}
+	return threatened;
+}
+
+Piece Board::GetKing(Config::PlayerColour col) const
+{
+	if(col == Config::WHITE || col == Config::BLACK)
+	{
+		for(int i = 0; i < pieces.Count(); ++i)
+		{
+			if( pieces[i].GetColour() == col && pieces[i].GetType() == Config::KING)
+			{
+				return pieces[i];
+			}
+		}
+	}
+	return Piece();
 }
 
 int Board::GetPieceIndex(ChessVector pos) const
@@ -249,6 +391,12 @@ void Board::RemovePiece(ChessVector pos)
 	if( index != -1)
 		pieces.RemoveItem(index);
 }
+
+void Board::SetMovePool(BitBoardMovePool * pool)
+{
+	movePool = pool;
+}
+
 
 BoardTileState::BoardTileState()
 {
