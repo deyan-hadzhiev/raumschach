@@ -212,6 +212,25 @@ BitBoard Board::GetPiecesBitBoard(Config::PlayerColour colour) const
 	return result;
 }
 
+void Board::GetPiecesArray(DynamicArray<Piece>& dest, Config::PlayerColour colour) const
+{
+	dest.Clear();
+	if(colour == Config::BOTH_COLOURS)
+	{
+		dest = pieces;
+		return;
+	}
+
+	for(int i = 0; i < pieces.Count(); ++i)
+	{
+		if(pieces[i].GetColour() == colour)
+		{
+			dest += pieces[i];
+		}
+	}
+
+}
+
 bool Board::ValidMove(Piece piece, ChessVector pos) const
 {
 	bool result = false;
@@ -283,9 +302,10 @@ bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMov
 	return result;
 }
 
-bool Board::KingCheckState(Config::PlayerColour colour) const
+Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 {
-	bool check = false;
+	using Config::KingState;
+	KingState kingState = KingState::NORMAL;
 	int kingIndex = -1;
 	bool found = false;
 	for(int i = 0; i < pieces.Count() && !found; ++i)
@@ -296,15 +316,73 @@ bool Board::KingCheckState(Config::PlayerColour colour) const
 			found = true;
 		}
 	}
+
+	Piece king;
+
 	if(kingIndex >= 0)
 	{
-		Piece king = pieces[kingIndex];
+		king = pieces[kingIndex];
 		if(TileThreatened(king.GetPositionVector(), Config::GetOppositePlayer(king.GetColour())))
 		{
-			check = true;
+			kingState = KingState::CHECK;
 		}
 	}
-	return check;
+	else
+	{
+		return Config::NO_KING;
+	}
+
+	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(king.GetColour());
+	BitBoard friendlyPiecesBitBoard = GetPiecesBitBoard(king.GetColour());
+	BitBoard enemyPiecesBitBoard = GetPiecesBitBoard(oppositeColour);
+
+	BitBoard kingMoves = movePool->GetPieceMoves( king, friendlyPiecesBitBoard, enemyPiecesBitBoard);
+	DynamicArray<ChessVector> kingMovesArray;
+	kingMoves.GetVectors(kingMovesArray);
+
+	bool hasMoveableTile = false;
+	// for every moveable tile, check if it isn't under check
+	for(int i = 0; i < kingMovesArray.Count() && !hasMoveableTile; ++i)
+	{
+		hasMoveableTile |= ! TileThreatened(kingMovesArray[i], oppositeColour);
+	}
+
+	// if the king has no moveable tiles, we must check the other figures
+	// this is slow operation, but will be rarely encountered
+	if(!hasMoveableTile)
+	{
+		DynamicArray<Piece> friendlyPieces;
+		GetPiecesArray(friendlyPieces, king.GetColour());
+		bool foundMove = false;
+		// check every piece for available moves, until at least one available move is found
+		for(int i = 0; i < friendlyPieces.Count() && !foundMove; ++i)
+		{
+			if(friendlyPieces[i].GetType() == Config::KING) continue;
+
+			BitBoard pieceMovesBitBoard = movePool->GetPieceMoves(friendlyPieces[i], friendlyPiecesBitBoard, enemyPiecesBitBoard);
+
+			DynamicArray<ChessVector> currentPieceMoves;
+			pieceMovesBitBoard.GetVectors(currentPieceMoves);
+
+			for(int move = 0; move < currentPieceMoves.Count() && !foundMove; ++move)
+			{
+				foundMove |= ValidMove(friendlyPieces[i], currentPieceMoves[move], pieceMovesBitBoard);
+			}
+		}
+
+		// if no moves were found, then this is STALEMATE
+		if(!foundMove)
+		{
+			kingState = KingState::STALEMATE;
+		}
+		else if(kingState == KingState::CHECK) // if no moves were found and the king is under a check, this is a checkmate
+		{
+			kingState = KingState::CHECKMATE;
+		}
+
+	}
+
+	return kingState;
 }
 
 bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const

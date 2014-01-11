@@ -1,11 +1,3 @@
-#include <iostream>
-#include <SDL.h>
-#include <cmath>
-#include "utils.h"
-#include "configuration.h"
-#include "constants.h"
-#include "board.h"
-#include "render.h"
 #include "raumschach.h"
 #include "player.h"
 

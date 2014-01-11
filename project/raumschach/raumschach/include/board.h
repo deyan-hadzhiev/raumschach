@@ -63,7 +63,11 @@ public:
 
 	static bool ValidVector(ChessVector vec);
 
+	// returns a BitBoard with all the pieces of the speciefied colour's bits set to 1
 	BitBoard GetPiecesBitBoard(Config::PlayerColour colour) const;
+
+	// copies all the pieces with the specified colour to the destination array
+	void GetPiecesArray(DynamicArray<Piece>& dest, Config::PlayerColour colour) const;
 
 	// check if this move is valid (short and slower version)
 	bool ValidMove(Piece piece, ChessVector pos) const;
@@ -88,7 +92,7 @@ public:
 	bool MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested = false);
 
 	// returns true if the king with the specified colour is under check
-	bool KingCheckState(Config::PlayerColour col) const;
+	Config::KingState KingCheckState(Config::PlayerColour col) const;
 	// returns true if the tile is threatened by any piece of the specified player colour
 	bool TileThreatened(ChessVector pos, Config::PlayerColour col) const;
 

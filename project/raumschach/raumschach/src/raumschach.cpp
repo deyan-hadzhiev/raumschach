@@ -5,6 +5,8 @@
 #include "render.h"
 #include "graphicboard.h"
 #include "board.h"
+#include "random_generator.h"
+#include <time.h>
 
 Raumschach::Raumschach()
 	:
@@ -13,6 +15,7 @@ Raumschach::Raumschach()
 	board(nullptr),
 	movePool(nullptr),
 	tileState(nullptr),
+	randGen(nullptr),
 	whitePlayer(nullptr),
 	blackPlayer(nullptr),
 	selectedPiece(),
@@ -32,6 +35,8 @@ Raumschach::~Raumschach()
 	graphicBoard = nullptr;
 	delete render;
 	render = nullptr;
+	delete randGen;
+	randGen = nullptr;
 }
 
 void Raumschach::Initialize(Player * white, Player * black)
@@ -84,6 +89,12 @@ void Raumschach::Initialize(Player * white, Player * black)
 	if(! tileState)
 	{
 		Error("ERROR: Failed to initialize the tile state board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+	}
+
+	randGen = new RandomGenerator(time(NULL));
+	if(! randGen)
+	{
+		Error("ERROR: Failed to initialize the random generator").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 }
 

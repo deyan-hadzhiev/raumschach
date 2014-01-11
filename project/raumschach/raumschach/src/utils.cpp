@@ -294,6 +294,21 @@ coord BitBoard::GetBitCount() const
 	return count;
 }
 
+void BitBoard::GetVectors(DynamicArray<ChessVector>& dest) const
+{
+	dest.Clear();
+	coord count = GetBitCount();
+	dest.Alloc(count);
+	for(char bitn = 0; bitn < Config::BITBOARD_SIZE; ++bitn)
+	{
+		for(char i = 0; i < SIZE; ++i)
+		{
+			if(bits[bitn] & (Config::BITBOARD_BIT >> i))
+				dest += ChessVector(SIZE * bitn + i);
+		}
+	}
+}
+
 //debug stuff
 #include <stdio.h>
 void BitBoard::PrintBitBoard() const

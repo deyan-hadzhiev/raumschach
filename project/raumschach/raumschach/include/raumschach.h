@@ -10,6 +10,7 @@ class Board;
 class GraphicBoard;
 class BitBoardMovePool;
 class BoardTileState;
+class RandomGenerator;
 
 class Raumschach
 {
@@ -30,6 +31,7 @@ private:
 	Board * board;
 	BitBoardMovePool * movePool;
 	BoardTileState * tileState;
+	RandomGenerator * randGen;
 
 	Piece selectedPiece;
 	BitBoard selectedPieceMoves;

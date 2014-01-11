@@ -65,7 +65,6 @@ namespace Config
 		return (col == WHITE ? BLACK : WHITE);
 	}
 
-
 	enum PieceType
 	{
 		NO_TYPE,
@@ -77,6 +76,15 @@ namespace Config
 		UNICORN,
 		PAWN,
 		PIECE_TYPE_COUNT,
+	};
+
+	enum KingState
+	{
+		NORMAL,
+		CHECK,
+		CHECKMATE,
+		STALEMATE,
+		NO_KING, // this must be error
 	};
 
 	// possible states of tiles
