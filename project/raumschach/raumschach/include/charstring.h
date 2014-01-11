@@ -20,7 +20,7 @@ public:
 	char& operator[](int index);
 
 	int Length() const;
-	
+
 	operator const char* () const;
 	operator char* ();
 	const char* GetPtr() const;

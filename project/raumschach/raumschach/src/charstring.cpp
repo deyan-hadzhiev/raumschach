@@ -74,7 +74,7 @@ const CharString& CharString::operator+=(const CharString& rhs)
 	{
 		strncpy(tmp, data, size);
 		strncat(tmp, rhs.data, totalLength - size + 1);
-		
+
 		delete[] data;
 		data = nullptr;
 		data = tmp;

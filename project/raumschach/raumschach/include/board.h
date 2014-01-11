@@ -4,6 +4,8 @@
 #include "utils.h"
 #include "piece.h"
 
+class Board;
+
 class BitBoardMovePool
 {
 public:
@@ -15,7 +17,7 @@ public:
 	// but this is a lot faster and can be used just to check the visibility of piece and tile
 	BitBoard GetPieceFullMoves(Piece p) const;
 	// calculates the posible moves for the speicified piece by checking for blocking friendly or enemy pieces
-	BitBoard GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces) const;
+	BitBoard GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board) const;
 
 private:
 	// disable copy and assign
@@ -43,6 +45,7 @@ public:
 	void SetBoardTileState(Config::TileType state, ChessVector pos);
 	void SetBoardTileState(Config::TileType state, const BitBoard& bb);
 
+	// set all the tiles flag to the specifed state
 	void SetChanged(bool flag);
 	bool GetChangedTile(ChessVector pos) const;
 

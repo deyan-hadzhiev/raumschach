@@ -81,8 +81,49 @@ Texture::Texture(const char* filename)
 	if(filename)
 	{
 		img = SDL_LoadBMP(filename);
-		width = img->w;
-		height = img->h;
+		if(img)
+		{
+			width = img->w;
+			height = img->h;
+		}
+	}
+}
+
+Texture::Texture(const Texture& src, Rect subRect, Render * render)
+	:
+	tex(nullptr),
+	img(nullptr),
+	width(subRect.width),
+	height(subRect.height)
+{
+	SDL_PixelFormat * pixelFormat = render->GetPixelFormat();
+	SDL_Surface * tmp = SDL_CreateRGBSurface(0, subRect.width, subRect.height, 32, 0xff000000, 0x00ff0000, 0x0000ff00, 0x000000ff);
+	if(tmp)
+	{
+		img = SDL_ConvertSurface(tmp, pixelFormat, 0);
+		SDL_FreeSurface(tmp);
+		if(img)
+		{
+			Uint32 * destPixels = (Uint32*) img->pixels;
+			int destPitch = img->pitch;
+			Uint32 * srcPixels = (Uint32*) src.img->pixels;
+			int srcPitch = src.img->pitch;
+			for(int y = 0; y < subRect.height; ++y)
+			{
+				Uint32* src = (Uint32*)((Uint8*) srcPixels + (subRect.y + y) * srcPitch) + subRect.x;
+				Uint32* dest = (Uint32*)((Uint8*) destPixels + y * destPitch);
+				for(int x = 0; x < subRect.width; ++x)
+				{
+					*(dest + x) = *(src + x);
+				}
+			}
+
+			tex = SDL_CreateTextureFromSurface(render->renderer, img);
+			if(tex)
+			{
+				SDL_SetTextureBlendMode(tex, SDL_BLENDMODE_BLEND);
+			}
+		}
 	}
 }
 
@@ -178,6 +219,7 @@ void Texture::InitTransparent(Colour col, Colour mask)
 		int colourChannels = BitBoard::BitCount(mask.GetColour()) / 8;
 		Uint32 maskRaw = mask.GetColour();
 		Uint32 colourRaw = col.GetColour();
+		Uint32 maskKeep = (colourChannels < 3 ? (~maskRaw & 0xffffff00) : 0xffffff00);
 		for(int i = 0; i < w*h; ++i)
 		{
 			Uint32 difference = 0;
@@ -185,7 +227,7 @@ void Texture::InitTransparent(Colour col, Colour mask)
 			difference += ((pixels[i] & (0x00ff0000 & maskRaw)) ^ (colourRaw & (0x00ff0000 & maskRaw))) >> 16;
 			difference += ((pixels[i] & (0x0000ff00 & maskRaw)) ^ (colourRaw & (0x0000ff00 & maskRaw))) >> 8;
 			difference /= colourChannels;
-			pixels[i] = (pixels[i] & 0xffffff00) | difference;
+			pixels[i] = (pixels[i] & maskKeep) | difference;
 		}
 	}
 }
@@ -194,6 +236,12 @@ SDL_Texture* Texture::GetTexture() const
 {
 	return tex;
 }
+
+bool Texture::IsLoaded() const
+{
+	return img != NULL;
+}
+
 
 int Texture::GetWidth() const
 {
@@ -403,8 +451,13 @@ void Render::StartEventLoop(Raumschach* handler)
 			switch( evnt.type)
 			{
 			case SDL_QUIT:
-			case SDL_KEYDOWN:
 				quit = true;
+				break;
+			case SDL_KEYDOWN:
+				if(evnt.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+				{
+					quit = true;
+				}
 				break;
 			case SDL_MOUSEBUTTONDOWN:
 				{

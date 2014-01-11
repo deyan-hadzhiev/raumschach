@@ -137,7 +137,7 @@ BitBoard BitBoardMovePool::GetPieceFullMoves(Piece p) const
 	}
 }
 
-BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces) const
+BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board) const
 {
 	BitBoard result;
 	// if the piece has scalable vector movement, we must calculate all the vectors manually
@@ -155,9 +155,26 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 		}
 		result = friendlyResult & enemyResult;
 	}
-	else if(pType != Config::PAWN)
+	else if(pType == Config::KNIGHT)
 	{
 		result = (pool[pType][p.GetPositionCoord()] & enemyPieces) | (pool[pType][p.GetPositionCoord()] & (~ (friendlyPieces | enemyPieces)));
+	}
+	else if(pType == Config::KING)
+	{
+		BitBoard tmp = (pool[pType][p.GetPositionCoord()] & enemyPieces) | (pool[pType][p.GetPositionCoord()] & (~ (friendlyPieces | enemyPieces)));
+		if(board)
+		{
+			DynamicArray<ChessVector> kingMoves;
+			tmp.GetVectors(kingMoves);
+			Config::PlayerColour oppositePlayer = Config::GetOppositePlayer(p.GetColour());
+			for(int i = 0; i < kingMoves.Count(); ++i)
+			{
+				if(!board->TileThreatened(kingMoves[i], oppositePlayer))
+				{
+					result.SetBits(Config::BITBOARD_BIT, kingMoves[i].GetVectorCoord());
+				}
+			}
+		}
 	}
 	else
 	{
@@ -236,7 +253,7 @@ bool Board::ValidMove(Piece piece, ChessVector pos) const
 	bool result = false;
 	if(movePool)
 	{
-		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour()))); 
+		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())), this); 
 		result = ValidMove(piece, pos, availableMoves);
 	}
 	return result;
@@ -269,7 +286,7 @@ bool Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
 	bool result = false;
 	if(movePool)
 	{
-		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())));
+		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())), this);
 		result = MovePiece(piece, pos, availableMoves, pretested);
 	}
 	return result;
@@ -336,7 +353,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 	BitBoard friendlyPiecesBitBoard = GetPiecesBitBoard(king.GetColour());
 	BitBoard enemyPiecesBitBoard = GetPiecesBitBoard(oppositeColour);
 
-	BitBoard kingMoves = movePool->GetPieceMoves( king, friendlyPiecesBitBoard, enemyPiecesBitBoard);
+	BitBoard kingMoves = movePool->GetPieceMoves( king, friendlyPiecesBitBoard, enemyPiecesBitBoard, this);
 	DynamicArray<ChessVector> kingMovesArray;
 	kingMoves.GetVectors(kingMovesArray);
 
@@ -359,7 +376,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 		{
 			if(friendlyPieces[i].GetType() == Config::KING) continue;
 
-			BitBoard pieceMovesBitBoard = movePool->GetPieceMoves(friendlyPieces[i], friendlyPiecesBitBoard, enemyPiecesBitBoard);
+			BitBoard pieceMovesBitBoard = movePool->GetPieceMoves(friendlyPieces[i], friendlyPiecesBitBoard, enemyPiecesBitBoard, this);
 
 			DynamicArray<ChessVector> currentPieceMoves;
 			pieceMovesBitBoard.GetVectors(currentPieceMoves);
@@ -422,7 +439,7 @@ bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
 			// if this tile is visible, we need to make better check, by getting the proper move bboard
 			if(positionBitBoard & pieceVisibility)
 			{
-				BitBoard pieceMoves(movePool->GetPieceMoves(activePieces[i], activeBitBoard, passiveBitBoard));
+				BitBoard pieceMoves(movePool->GetPieceMoves(activePieces[i], activeBitBoard, passiveBitBoard, this));
 				if(positionBitBoard & pieceMoves)
 				{
 					threatened = true;

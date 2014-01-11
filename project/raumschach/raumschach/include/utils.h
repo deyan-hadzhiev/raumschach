@@ -164,6 +164,7 @@ public:
 	Rect(int x, int y) : x(x), y(y), width(0), height(0) {}
 	Rect(int x, int y, int w, int h) : x(x), y(y), width(w), height(h) {}
 	Rect(const Rect& copy) : x(copy.x), y(copy.y), width(copy.width), height(copy.height) {}
+	Rect(const int vec[4]) : x(vec[0]), y(vec[1]), width(vec[2]), height(vec[3]) {}
 
 	Rect& operator=(const Rect& assign)
 	{
@@ -173,6 +174,12 @@ public:
 		height = assign.height;
 		return *this;
 	}
+
+	bool Inside(int sx, int sy) const
+	{
+		return sx >= x && sx < (width + x) && sy >= y && sy < (height + y);
+	}
+
 };
 
 class BitBoard

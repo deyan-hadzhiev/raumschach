@@ -41,6 +41,8 @@ class Texture
 public:
 	Texture();
 	Texture(const char* filename);
+	// creates a texture that is part from the provided texture, by using it's surface and renderer
+	Texture(const Texture& src, Rect subRect, Render * render);
 
 	~Texture();
 
@@ -49,6 +51,9 @@ public:
 	bool RenderTexture(Render* render);
 	void InitTransparent(Colour col, Colour mask = 0xffffff00);
 	SDL_Texture* GetTexture() const;
+
+	// returns false if the texture hasn't been loaded
+	bool IsLoaded() const;
 
 	int GetWidth() const;
 	int GetHeight() const;

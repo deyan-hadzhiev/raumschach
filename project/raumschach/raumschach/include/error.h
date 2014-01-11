@@ -3,6 +3,7 @@
 
 #include <string>
 #include <iostream>
+#include "charstring.h"
 
 class Error
 {
@@ -13,7 +14,7 @@ public:
 
 	const Error& Post() const
 	{
-		std::cerr << errmsg << std::endl;
+		std::cout << errmsg << std::endl;
 		return *this;
 	}
 

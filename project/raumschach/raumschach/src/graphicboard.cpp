@@ -4,9 +4,10 @@
 #include "constants.h"
 #include "board.h"
 
-GraphicBoard::GraphicBoard(Render * render)
+GraphicBoard::GraphicBoard(Render * render, Rect position)
 	:
 	render(render),
+	pos(position),
 	fullRefresh(true)
 {
 	for(int i = 0; i < COUNT_OF(pieceTextures); ++i)
@@ -39,7 +40,7 @@ void GraphicBoard::Initialize()
 			for(int col = 0; col < Config::PCOLOUR_COUNT; ++col)
 			{
 				Texture* currTex = LoadTexture(GraphicConfig::PIECE_TEXTURE_PATHS[col][i].name);
-				if(currTex)
+				if(currTex && currTex->IsLoaded())
 				{
 					bool error = false;
 					error |= ! currTex->SetPixelFormat(render->GetPixelFormat());
@@ -54,7 +55,8 @@ void GraphicBoard::Initialize()
 				}
 				else
 				{
-					Error("ERROR: Failed allocation of texture").Post().Exit(SysConfig::EXIT_GRAPHIC_BOARD_INIT_ERROR);
+					CharString errmsg = CharString("ERROR: Failed allocation of texture ") + CharString(GraphicConfig::PIECE_TEXTURE_PATHS[col][i].name);
+					Error(errmsg).Post().Exit(SysConfig::EXIT_GRAPHIC_BOARD_INIT_ERROR);
 				}
 			}
 		}
@@ -65,7 +67,7 @@ void GraphicBoard::Initialize()
 		}
 	}
 
-	backgroundColour = Colour(GraphicConfig::BACKGROUND_COLOUR);
+	backgroundColour = Colour(GraphicConfig::BOARD_BACKGROUND_COLOUR);
 	
 	for(int colour = 0; colour < Config::PCOLOUR_COUNT; ++colour)
 	{
@@ -74,7 +76,6 @@ void GraphicBoard::Initialize()
 			tileColours[colour][tileType] = GraphicConfig::BOARD_COLOURS[colour][tileType];
 		}
 	}
-
 }
 
 Texture* GraphicBoard::LoadTexture(const char* filename)
@@ -87,52 +88,61 @@ Texture* GraphicBoard::LoadTexture(const char* filename)
 	return retval;
 }
 
-bool GraphicBoard::OnBoard(int x, int y)
+bool GraphicBoard::OnBoard(int x, int y) const
 {
+	if(x < pos.x || x >= pos.width + pos.x || y < pos.y || y >= pos.height + pos.y)
+		return false;
+
+	int rx = x - pos.x;
+	int ry = y - pos.y;
 	const int levelWidth = GraphicConfig::BOARD_PADDING + GraphicConfig::BOARD_SQUARE_SIDE_SIZE * Config::BOARD_SIDE; 
-	bool onBoard = x / levelWidth < Config::BOARD_SIDE;
-	onBoard &= x % levelWidth >= GraphicConfig::BOARD_PADDING;
-	onBoard &= y >= GraphicConfig::BOARD_PADDING && y < levelWidth;
+	bool onBoard = rx / levelWidth < Config::BOARD_SIDE;
+	onBoard &= rx % levelWidth >= GraphicConfig::BOARD_PADDING;
+	onBoard &= ry >= GraphicConfig::BOARD_PADDING && ry < levelWidth;
 	return onBoard;
 }
 
-ChessVector GraphicBoard::ScreenToBoard(int x, int y)
+ChessVector GraphicBoard::ScreenToBoard(int x, int y) const
 {
 	const int levelWidth = GraphicConfig::BOARD_PADDING + GraphicConfig::BOARD_SQUARE_SIDE_SIZE * Config::BOARD_SIDE;
-	ChessVector pos;
+	ChessVector tile;
 	if(OnBoard(x, y))
 	{
-		pos.z = Config::BOARD_SIDE - 1 - x / levelWidth;
-		int rx = x % levelWidth - GraphicConfig::BOARD_PADDING;
-		int ry = y - GraphicConfig::BOARD_PADDING;
-		pos.x = rx / GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
-		pos.y = Config::BOARD_SIDE - 1 - ry / GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
+		tile.z = Config::BOARD_SIDE - 1 - (x - pos.x) / levelWidth;
+		int rx = (x - pos.x) % levelWidth - GraphicConfig::BOARD_PADDING;
+		int ry = (y - pos.y) - GraphicConfig::BOARD_PADDING;
+		tile.x = rx / GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
+		tile.y = Config::BOARD_SIDE - 1 - ry / GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
 	}
 	else
 	{
-		pos = Const::INVALID_CHESS_VECTOR;
+		tile = Const::INVALID_CHESS_VECTOR;
 	}
-	return pos;
+	return tile;
 }
 
-ChessVector GraphicBoard::ScreenToBoard(Rect pos)
+ChessVector GraphicBoard::ScreenToBoard(Rect pos) const
 {
 	return ScreenToBoard(pos.x, pos.y);
 }
 
-Rect GraphicBoard::BoardToScreen(ChessVector pos)
+Rect GraphicBoard::BoardToScreen(ChessVector tile) const
 {
 	Rect retval;
-	if(Board::ValidVector(pos))
+	if(Board::ValidVector(tile))
 	{
 		const int levelWidth = GraphicConfig::BOARD_PADDING + GraphicConfig::BOARD_SQUARE_SIDE_SIZE * Config::BOARD_SIDE;
-		const int x = (int) pos.x;
-		const int y = Config::BOARD_SIDE - 1 - (int) pos.y;
-		const int z = Config::BOARD_SIDE - 1 - (int) pos.z;
+		const int x = (int) tile.x;
+		const int y = Config::BOARD_SIDE - 1 - (int) tile.y;
+		const int z = Config::BOARD_SIDE - 1 - (int) tile.z;
 		retval.x = levelWidth * z + GraphicConfig::BOARD_PADDING + x * GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
 		retval.y = GraphicConfig::BOARD_PADDING + y * GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
 		retval.width = GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
 		retval.height = GraphicConfig::BOARD_SQUARE_SIDE_SIZE;
+		
+		// add the relative displacement
+		retval.x += pos.x;
+		retval.y += pos.y;
 	}
 	else
 	{
@@ -149,8 +159,7 @@ void GraphicBoard::DrawBoard(const Board * board, const BoardTileState * tileSta
 	//first draw the background
 	if(fullRefresh)
 	{
-		render->BeginDraw();
-		render->DrawRectangle( backgroundColour, 0, 0, render->GetWidth(), render->GetHeight());
+		render->DrawRectangle( backgroundColour, pos.x, pos.y, pos.width, pos.height);
 	}
 
 	//draw all the tiles and draw a piece if there is one

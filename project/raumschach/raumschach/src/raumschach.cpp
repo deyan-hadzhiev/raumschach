@@ -6,12 +6,14 @@
 #include "graphicboard.h"
 #include "board.h"
 #include "random_generator.h"
+#include "graphicpanel.h"
 #include <time.h>
 
 Raumschach::Raumschach()
 	:
 	render(nullptr),
 	graphicBoard(nullptr),
+	graphicPanel(nullptr),
 	board(nullptr),
 	movePool(nullptr),
 	tileState(nullptr),
@@ -33,6 +35,8 @@ Raumschach::~Raumschach()
 	movePool = nullptr;
 	delete graphicBoard;
 	graphicBoard = nullptr;
+	delete graphicPanel;
+	graphicPanel = nullptr;
 	delete render;
 	render = nullptr;
 	delete randGen;
@@ -64,6 +68,7 @@ void Raumschach::Initialize(Player * white, Player * black)
 	{
 		Error("ERROR: Failed to initialize graphic render").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
+	render->BeginDraw();
 
 	graphicBoard = new GraphicBoard(render);
 	if(! graphicBoard)
@@ -71,6 +76,14 @@ void Raumschach::Initialize(Player * white, Player * black)
 		Error("ERROR: Failed to initalize graphic board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 	graphicBoard->Initialize();
+
+	graphicPanel = new GraphicPanel(render);
+	if(! graphicPanel)
+	{
+		Error("ERROR: Failed to initialize graphic panel").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+	}
+	graphicPanel->Initialize();
+	InitButtons();
 
 	movePool = new BitBoardMovePool();
 	if(! movePool)
@@ -100,6 +113,8 @@ void Raumschach::Initialize(Player * white, Player * black)
 
 void Raumschach::Start()
 {
+	IdleDrawBoard();
+	PostMessage("Game started. White move first");
 	render->StartEventLoop(this);
 }
 
@@ -107,13 +122,14 @@ void Raumschach::IdleDrawBoard()
 {
 	graphicBoard->DrawBoard(board, tileState);
 	tileState->SetChanged(false);
+	graphicPanel->DrawPanel();
 }
 
 void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 {
-	if(button == SysConfig::LEFT && GraphicBoard::OnBoard(x, y))
+	if(button == SysConfig::LEFT && graphicBoard->OnBoard(x, y))
 	{
-		ChessVector clickedPos = GraphicBoard::ScreenToBoard(Rect(x, y));
+		ChessVector clickedPos = graphicBoard->ScreenToBoard(Rect(x, y));
 		Piece clickedPiece = board->GetPiece(clickedPos);
 		if(clickedPiece.GetType() != Config::NO_TYPE && clickedPiece.GetColour() == currentPlayer)
 		{
@@ -121,7 +137,7 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
 			BitBoard opposingPieces = board->GetPiecesBitBoard( Config::GetOppositePlayer(selectedPiece.GetColour()));
 			tileState->SetBoardTileState(Config::TILE_SELECTED, clickedPos);
-			selectedPieceMoves = movePool->GetPieceMoves(selectedPiece, board->GetPiecesBitBoard(selectedPiece.GetColour()), opposingPieces);
+			selectedPieceMoves = movePool->GetPieceMoves(selectedPiece, board->GetPiecesBitBoard(selectedPiece.GetColour()), opposingPieces, board);
 			tileState->SetBoardTileState(Config::TILE_MOVEABLE, selectedPieceMoves);
 			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, selectedPieceMoves & opposingPieces);
 			if(board->KingCheckState(currentPlayer))
@@ -150,12 +166,79 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 	}
 	else
 	{
-		selectedPiece = Piece();
-		tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
-		if(board->KingCheckState(currentPlayer))
+		bool deselect = false;
+		if(button == SysConfig::LEFT && graphicPanel->OnPanel(x, y))
 		{
-			Piece oppositeKing = board->GetKing(currentPlayer);
-			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+			Button * clickedButton = graphicPanel->GetButton(x, y);
+			if(clickedButton)
+			{
+				clickedButton->Action(this);
+			}
+			else
+			{
+				deselect = true;
+			}
+		}
+
+		if(deselect)
+		{
+			selectedPiece = Piece();
+			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+			if(board->KingCheckState(currentPlayer))
+			{
+				Piece oppositeKing = board->GetKing(currentPlayer);
+				tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+			}
 		}
 	}
+}
+
+void Raumschach::PostMessage(const CharString& message) const
+{
+	graphicPanel->PostMessage(message);
+}
+
+const Board * Raumschach::GetBoard() const
+{
+	return board;
+}
+
+unsigned short Raumschach::GetGameState() const
+{
+	unsigned short flags = 0;
+	flags |= ((unsigned short) currentPlayer) << Config::BOARD_STATE_TURN_COLOUR_LSHIFT;
+
+	return flags;
+}
+
+void Raumschach::InitializeBoard(const DynamicArray<Piece>& pieces, unsigned short flags)
+{
+	delete board;
+	board = nullptr;
+	board = new Board(pieces, movePool);
+
+	// now initialize flags
+	currentPlayer = (Config::PlayerColour) ((flags >> Config::BOARD_STATE_TURN_COLOUR_LSHIFT) & 0x0003);
+
+	selectedPiece = Piece();
+	selectedPieceMoves = BitBoard();
+	tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+	if(board->KingCheckState(currentPlayer))
+	{
+		Piece oppositeKing = board->GetKing(currentPlayer);
+		tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+	}
+
+	// now refresh fully the gui
+	graphicBoard->Refresh();
+	graphicBoard->DrawBoard(board, tileState);
+	graphicPanel->Refresh();
+	graphicPanel->DrawPanel();
+}
+
+void Raumschach::InitButtons()
+{
+	graphicPanel->AddButton(new ResetButton("Reset game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_RESET)));
+	graphicPanel->AddButton(new BoardSaveButton("Save game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_SAVE)));
+	graphicPanel->AddButton(new BoardLoadButton("Load game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_LOAD)));
 }
