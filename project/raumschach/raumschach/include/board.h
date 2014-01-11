@@ -8,6 +8,7 @@ class BitBoardMovePool
 {
 public:
 	BitBoardMovePool();
+	~BitBoardMovePool();
 	
 	void Initalize();
 	// used only for slight optimizations - the proper moves should still be calculated by the GetPieceMoves(...)
@@ -24,8 +25,8 @@ private:
 	static BitBoard CalculateBitBoard(ChessVector pos, const coord vectors[][3], int srcVectorSize, bool scaleable);
 	static BitBoard VectorToIntersection(ChessVector pos, ChessVector vec, const BitBoard& intersection, bool including);
 
-	BitBoard pool[Config::PIECE_TYPE_COUNT + 1][Config::BOARD_SIZE];
-	BitBoard pawnCapturePool[Config::PCOLOUR_COUNT][Config::BOARD_SIZE];
+	BitBoard * pool[Config::PIECE_TYPE_COUNT + 1];
+	BitBoard * pawnCapturePool[Config::PCOLOUR_COUNT];
 
 	DynamicArray<ChessVector> vectorPool[Config::PIECE_TYPE_COUNT + 1];
 };

@@ -7,24 +7,32 @@ BitBoardMovePool::BitBoardMovePool()
 {
 	for(int i = 0; i < COUNT_OF(pool); ++i)
 	{
-		for(int j = 0; j < COUNT_OF(pool[i]); ++j)
-		{
-			pool[i][j] = BitBoard();
-		}
+		pool[i] = new BitBoard[Config::BOARD_SIZE];
 	}
 	for(int i = 0; i < COUNT_OF(pawnCapturePool); ++i)
 	{
-		for(int j = 0; j < COUNT_OF(pawnCapturePool[i]); ++j)
-		{
-			pawnCapturePool[i][j] = BitBoard();
-		}
+		pawnCapturePool[i] = new BitBoard[Config::BOARD_SIZE];
+	}
+}
+
+BitBoardMovePool::~BitBoardMovePool()
+{
+	for(int i = 0; i < COUNT_OF(pool); ++i)
+	{
+		delete[] pool[i];
+		pool[i] = nullptr;
+	}
+	for(int i = 0; i < COUNT_OF(pawnCapturePool); ++i)
+	{
+		delete[] pawnCapturePool[i];
+		pawnCapturePool[i] = nullptr;
 	}
 }
 
 void BitBoardMovePool::Initalize()
 {
 	const int boardSize = Config::BOARD_SIZE;
-	auto initPieceMoves = [boardSize] (BitBoard dest[], const coord srcVectors[][3], int srcVectorSize, bool scaleable)
+	auto initPieceMoves = [boardSize] (BitBoard * dest, const coord srcVectors[][3], int srcVectorSize, bool scaleable)
 	{
 		for(int i = 0; i < boardSize; ++i)
 		{
@@ -98,9 +106,8 @@ BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec
 	bool intersected = false;
 	while(Board::ValidVector(currPos) && !intersected)
 	{
-		BitBoard currPosBitBoard;
-		currPosBitBoard.SetBits(Config::BITBOARD_BIT, currPos.GetVectorCoord());
-		// if there is intersection record it if we include intersection, otherwise just record this to the resulting vector
+		BitBoard currPosBitBoard(currPos);
+		// if there is intersection, record it if we include intersection, otherwise just record this to the resulting vector
 		if(currPosBitBoard & intersection)
 		{
 			intersected = true;

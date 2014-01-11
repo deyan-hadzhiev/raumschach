@@ -135,9 +135,12 @@ BitBoard::BitBoard(ChessVector pos)
 
 BitBoard& BitBoard::operator=(const BitBoard& assign)
 {
-	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
+	if(this != &assign)
 	{
-		bits[i] = assign.bits[i];
+		for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
+		{
+			bits[i] = assign.bits[i];
+		}
 	}
 	return *this;
 }
@@ -241,6 +244,14 @@ BitBoard::operator bool() const
 		nonZero |= (bits[i] != 0UL);
 	}
 	return nonZero;
+}
+
+void BitBoard::Zero()
+{
+	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)
+	{
+		bits[i] = 0UL;
+	}
 }
 
 const coord BitBoard::SIZE = sizeof(unsigned long long) * 8;

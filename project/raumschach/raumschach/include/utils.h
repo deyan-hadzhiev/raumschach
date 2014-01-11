@@ -84,6 +84,7 @@ public:
 	bool operator!=(const BitBoard& rhs) const;
 	operator bool() const;
 
+	void Zero(); // makes all bits zeroes
 	unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const; // returns the bits with the given offset, and the specified mask ( 1 is the default mask)
 	void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT); // sets the bits with the given offset using only those from the specified mask
 	coord GetBitCount() const; // take the current object's bit count
