@@ -16,8 +16,14 @@ public:
 	// used only for slight optimizations - the proper moves should still be calculated by the GetPieceMoves(...)
 	// but this is a lot faster and can be used just to check the visibility of piece and tile
 	BitBoard GetPieceFullMoves(Piece p) const;
-	// calculates the posible moves for the speicified piece by checking for blocking friendly or enemy pieces
-	BitBoard GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board) const;
+	/** calculates the posible moves for the speicified piece by checking for blocking friendly or enemy pieces
+	@param p: The piece which moves we are checking
+	@param friendlyPieces: The BitBoard of the friendly pieces, we could obtain it but this is easier
+	@param enemyPieces: The BitBoard of the enemy pieces, we could obtain it but this is easier
+	@param board: A pointer to a board, from which we will take the pieces, we need it for kings
+	@param includeFriendly[optional]: To specify, whether we shall include friendly pieces, this is used when we check if a piece is protected by another one.
+	*/
+	BitBoard GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board, bool includeFriendly = false) const;
 
 private:
 	// disable copy and assign
@@ -77,6 +83,9 @@ public:
 	// check if this move is valid
 	bool ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const;
 
+	// check if this move is possible, i.e. the piece can move there and no check is revealed with it
+	bool PossibleMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const;
+
 	/** Move a piece on the board (short and slow version, because it calculates the available move positions)
 	* @param piece : The piece to be moved
 	* @param pos : The destination position
@@ -94,6 +103,8 @@ public:
 	*/
 	bool MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested = false);
 
+	// a simplified version of KingCheckState(...) just for checking whether the king is under check
+	bool KingInCheck(Config::PlayerColour col) const;
 	// returns true if the king with the specified colour is under check
 	Config::KingState KingCheckState(Config::PlayerColour col) const;
 	// returns true if the tile is threatened by any piece of the specified player colour

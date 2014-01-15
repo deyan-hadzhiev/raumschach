@@ -3,6 +3,7 @@
 
 #include "configuration.h"
 #include "piece.h"
+#include "charstring.h"
 
 class Player;
 class Render;
@@ -12,7 +13,6 @@ class BitBoardMovePool;
 class BoardTileState;
 class RandomGenerator;
 class GraphicPanel;
-class CharString;
 
 class Raumschach
 {
@@ -59,6 +59,8 @@ private:
 	Piece selectedPiece;
 	BitBoard selectedPieceMoves;
 	Config::PlayerColour currentPlayer;
+
+	CharString playerNames[Config::PCOLOUR_COUNT];
 
 	// not owned, so no destruction
 	Player * whitePlayer;

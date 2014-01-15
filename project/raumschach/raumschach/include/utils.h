@@ -229,7 +229,15 @@ public:
 	}
 
 	//debuging purposes
-	void PrintBitBoard() const;
+#ifdef _DEBUG
+#define DEBUG_BB(x,str) (x).PrintBitBoard((str));
+
+	// prints the bit board to the console
+	void PrintBitBoard(const char* str) const;
+
+#else
+#define DEBUG_BB(x,str)
+#endif // _DEBUG
 
 private:
 	static const coord SIZE;

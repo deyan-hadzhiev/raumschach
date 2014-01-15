@@ -309,10 +309,11 @@ void BitBoard::GetVectors(DynamicArray<ChessVector>& dest) const
 	}
 }
 
-//debug stuff
+#ifdef _DEBUG
 #include <stdio.h>
-void BitBoard::PrintBitBoard() const
+void BitBoard::PrintBitBoard(const char* str) const
 {
+	if(str) printf("%s\n", str);
 	char line[(Config::BOARD_SIDE + 1) * Config::BOARD_SIDE + 1] = "";
 	const int lastChar = (Config::BOARD_SIDE + 1) * Config::BOARD_SIDE;
 	line[lastChar] = '\0';
@@ -340,3 +341,4 @@ void BitBoard::PrintBitBoard() const
 	}
 	printf("\n");
 }
+#endif // _DEBUG

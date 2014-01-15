@@ -137,7 +137,7 @@ BitBoard BitBoardMovePool::GetPieceFullMoves(Piece p) const
 	}
 }
 
-BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board) const
+BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board, bool includeFriendly) const
 {
 	BitBoard result;
 	// if the piece has scalable vector movement, we must calculate all the vectors manually
@@ -150,7 +150,7 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 		ChessVector piecePosition = p.GetPositionVector();
 		for(int i = 0; i < pieceVectorPool.Count(); ++i)
 		{
-			friendlyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], friendlyPieces, false);
+			friendlyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], friendlyPieces, false || includeFriendly);
 			enemyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], enemyPieces, true);
 		}
 		result = friendlyResult & enemyResult;
@@ -158,10 +158,12 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 	else if(pType == Config::KNIGHT)
 	{
 		result = (pool[pType][p.GetPositionCoord()] & enemyPieces) | (pool[pType][p.GetPositionCoord()] & (~ (friendlyPieces | enemyPieces)));
+		if(includeFriendly) result |= (pool[pType][p.GetPositionCoord()] & friendlyPieces);
 	}
 	else if(pType == Config::KING)
 	{
 		BitBoard tmp = (pool[pType][p.GetPositionCoord()] & enemyPieces) | (pool[pType][p.GetPositionCoord()] & (~ (friendlyPieces | enemyPieces)));
+		if(includeFriendly) tmp |= pool[pType][p.GetPositionCoord()] & friendlyPieces;
 		if(board)
 		{
 			DynamicArray<ChessVector> kingMoves;
@@ -179,6 +181,7 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 	else
 	{
 		result = ((~ (friendlyPieces | enemyPieces)) & pool[pType + p.GetColour()][p.GetPositionCoord()]) | (pawnCapturePool[p.GetColour()][p.GetPositionCoord()] & enemyPieces);
+		if(includeFriendly) result |= pawnCapturePool[p.GetColour()][p.GetPositionCoord()] & friendlyPieces;
 	}
 	return result;
 }
@@ -275,7 +278,7 @@ bool Board::ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMov
 		}
 
 		// finally we test the check state after the move
-		result = ! movedBoard.KingCheckState(piece.GetColour());
+		result = ! movedBoard.KingInCheck(piece.GetColour());
 
 	}
 	return result;
@@ -319,6 +322,26 @@ bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMov
 	return result;
 }
 
+bool Board::KingInCheck(Config::PlayerColour colour) const
+{
+	bool check = false;
+	int kingIndex = -1;
+	bool found = false;
+	for(int i = 0; i < pieces.Count() && !found; ++i)
+	{
+		if(pieces[i].GetType() == Config::KING && pieces[i].GetColour() == colour)
+		{
+			kingIndex = i;
+			found = true;
+		}
+	}
+	if(kingIndex >= 0)
+	{
+		check = TileThreatened(pieces[kingIndex].GetPositionVector(), Config::GetOppositePlayer(colour));
+	}
+	return check;
+}
+
 Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 {
 	using Config::KingState;
@@ -349,8 +372,8 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 		return Config::NO_KING;
 	}
 
-	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(king.GetColour());
-	BitBoard friendlyPiecesBitBoard = GetPiecesBitBoard(king.GetColour());
+	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(colour);
+	BitBoard friendlyPiecesBitBoard = GetPiecesBitBoard(colour);
 	BitBoard enemyPiecesBitBoard = GetPiecesBitBoard(oppositeColour);
 
 	BitBoard kingMoves = movePool->GetPieceMoves( king, friendlyPiecesBitBoard, enemyPiecesBitBoard, this);
@@ -388,7 +411,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 		}
 
 		// if no moves were found, then this is STALEMATE
-		if(!foundMove)
+		if(!foundMove && kingState != KingState::CHECK)
 		{
 			kingState = KingState::STALEMATE;
 		}
@@ -439,7 +462,13 @@ bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
 			// if this tile is visible, we need to make better check, by getting the proper move bboard
 			if(positionBitBoard & pieceVisibility)
 			{
-				BitBoard pieceMoves(movePool->GetPieceMoves(activePieces[i], activeBitBoard, passiveBitBoard, this));
+				Config::PieceType type = activePieces[i].GetType();
+				if(! Const::PIECE_MOVE_SCALING[type]) // if this piece moves are not scaleable, then the tile is threatened
+				{
+					threatened = true;
+					continue;
+				}
+				BitBoard pieceMoves(movePool->GetPieceMoves(activePieces[i], activeBitBoard, passiveBitBoard, this, true));
 				if(positionBitBoard & pieceMoves)
 				{
 					threatened = true;

@@ -48,6 +48,7 @@ void Raumschach::Initialize(Player * white, Player * black)
 	if(white)
 	{
 		whitePlayer = white;
+		playerNames[Config::WHITE] = "White Player";
 	}
 	else
 	{
@@ -57,6 +58,7 @@ void Raumschach::Initialize(Player * white, Player * black)
 	if(black)
 	{
 		blackPlayer	= black;
+		playerNames[Config::BLACK] = "Black Player";
 	}
 	else
 	{
@@ -140,7 +142,7 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 			selectedPieceMoves = movePool->GetPieceMoves(selectedPiece, board->GetPiecesBitBoard(selectedPiece.GetColour()), opposingPieces, board);
 			tileState->SetBoardTileState(Config::TILE_MOVEABLE, selectedPieceMoves);
 			tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, selectedPieceMoves & opposingPieces);
-			if(board->KingCheckState(currentPlayer))
+			if(board->KingInCheck(currentPlayer))
 			{
 				Piece playerKing = board->GetKing(currentPlayer);
 				tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, playerKing.GetPositionVector());
@@ -155,11 +157,37 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 				Config::PlayerColour oppositePlayerColour = Config::GetOppositePlayer(currentPlayer);
 				selectedPiece = Piece();
 				tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
-				if(board->KingCheckState(oppositePlayerColour))
+				if(board->KingInCheck(oppositePlayerColour))
 				{
 					Piece oppositeKing = board->GetKing(oppositePlayerColour);
 					tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
 				}
+
+				Config::KingState kingState = board->KingCheckState(oppositePlayerColour);
+
+				CharString gameStateString;
+				switch (kingState)
+				{
+				case Config::NORMAL:
+					gameStateString = playerNames[oppositePlayerColour] + " is next to move";
+					break;
+				case Config::CHECK:
+					gameStateString = playerNames[oppositePlayerColour] + " is under check!";
+					break;
+				case Config::CHECKMATE:
+					gameStateString = "Checkmate! " + playerNames[currentPlayer] + " wins!";
+					break;
+				case Config::STALEMATE:
+					gameStateString = "Stalemate! End of game";
+					break;
+				case Config::NO_KING:
+					break;
+				default:
+					break;
+				}
+
+				PostMessage(gameStateString);
+
 				currentPlayer = oppositePlayerColour;
 			}
 		}
@@ -184,7 +212,7 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 		{
 			selectedPiece = Piece();
 			tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
-			if(board->KingCheckState(currentPlayer))
+			if(board->KingInCheck(currentPlayer))
 			{
 				Piece oppositeKing = board->GetKing(currentPlayer);
 				tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
