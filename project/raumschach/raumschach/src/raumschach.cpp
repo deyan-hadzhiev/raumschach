@@ -7,6 +7,7 @@
 #include "board.h"
 #include "random_generator.h"
 #include "graphicpanel.h"
+#include "player.h"
 #include <time.h>
 
 Raumschach::Raumschach()
@@ -18,15 +19,18 @@ Raumschach::Raumschach()
 	movePool(nullptr),
 	tileState(nullptr),
 	randGen(nullptr),
-	whitePlayer(nullptr),
-	blackPlayer(nullptr),
 	selectedPiece(),
 	selectedPieceMoves(),
-	currentPlayer(Config::WHITE)
+	currentPlayer(Config::WHITE),
+	gameEnded(false)
 {}
 
 Raumschach::~Raumschach()
 {
+	delete players[Config::WHITE];
+	players[Config::WHITE] = nullptr;
+	delete players[Config::BLACK];
+	players[Config::BLACK] = nullptr;
 	delete tileState;
 	tileState = nullptr;
 	delete board;
@@ -43,24 +47,18 @@ Raumschach::~Raumschach()
 	randGen = nullptr;
 }
 
-void Raumschach::Initialize(Player * white, Player * black)
+void Raumschach::Initialize()
 {
-	if(white)
-	{
-		whitePlayer = white;
-		playerNames[Config::WHITE] = "White Player";
-	}
-	else
+	players[Config::WHITE] = new HumanPlayer();
+	playerNames[Config::WHITE] = "White Player";
+	if(!players[Config::WHITE])
 	{
 		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	if(black)
-	{
-		blackPlayer	= black;
-		playerNames[Config::BLACK] = "Black Player";
-	}
-	else
+	players[Config::BLACK] = new HumanPlayer();
+	playerNames[Config::BLACK] = "Black Player";
+	if(!players[Config::BLACK])
 	{
 		Error("ERROR: No black player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
@@ -129,7 +127,7 @@ void Raumschach::IdleDrawBoard()
 
 void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 {
-	if(button == SysConfig::LEFT && graphicBoard->OnBoard(x, y))
+	if(button == SysConfig::LEFT && graphicBoard->OnBoard(x, y) && !gameEnded)
 	{
 		ChessVector clickedPos = graphicBoard->ScreenToBoard(Rect(x, y));
 		Piece clickedPiece = board->GetPiece(clickedPos);
@@ -176,11 +174,15 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 					break;
 				case Config::CHECKMATE:
 					gameStateString = "Checkmate! " + playerNames[currentPlayer] + " wins!";
+					gameEnded = true;
 					break;
 				case Config::STALEMATE:
 					gameStateString = "Stalemate! End of game";
+					gameEnded = true;
 					break;
 				case Config::NO_KING:
+					gameStateString = "No king! This is probably a bug. Please report!";
+					gameEnded = true;
 					break;
 				default:
 					break;
@@ -235,6 +237,7 @@ unsigned short Raumschach::GetGameState() const
 {
 	unsigned short flags = 0;
 	flags |= ((unsigned short) currentPlayer) << Config::BOARD_STATE_TURN_COLOUR_LSHIFT;
+	flags |= ((unsigned short) gameEnded) << Config::BOARD_STATE_GAME_ENDED_LSHIFT;
 
 	return flags;
 }
@@ -247,6 +250,7 @@ void Raumschach::InitializeBoard(const DynamicArray<Piece>& pieces, unsigned sho
 
 	// now initialize flags
 	currentPlayer = (Config::PlayerColour) ((flags >> Config::BOARD_STATE_TURN_COLOUR_LSHIFT) & 0x0003);
+	gameEnded = ((flags >> Config::BOARD_STATE_GAME_ENDED_LSHIFT) & 0x0001) != 0;
 
 	selectedPiece = Piece();
 	selectedPieceMoves = BitBoard();
@@ -264,9 +268,38 @@ void Raumschach::InitializeBoard(const DynamicArray<Piece>& pieces, unsigned sho
 	graphicPanel->DrawPanel();
 }
 
+void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColour colour)
+{
+	delete players[colour];
+	players[colour] = nullptr;
+
+	switch (type)
+	{
+	case Config::PLAYER_HUMAN:
+		players[colour] = new HumanPlayer();
+		PostMessage("Initialized a new Human " + playerNames[colour]);
+		break;
+	case Config::PLAYER_AI:
+		PostMessage("Initialized a new AI " + playerNames[colour]);
+		players[colour] = new AIPlayer();
+		break;
+	case Config::PLAYERS_TYPE_COUNT:
+		Error("No player type specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+		break;
+	default:
+		break;
+	}
+}
+
 void Raumschach::InitButtons()
 {
 	graphicPanel->AddButton(new ResetButton("Reset game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_RESET)));
 	graphicPanel->AddButton(new BoardSaveButton("Save game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_SAVE)));
 	graphicPanel->AddButton(new BoardLoadButton("Load game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_LOAD)));
+
+	// new player buttons
+	graphicPanel->AddButton(new NewPlayerButton("Human White", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_NEW_HUMAN_WHITE), Config::PLAYER_HUMAN, Config::WHITE));
+	graphicPanel->AddButton(new NewPlayerButton("Human Black", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_NEW_HUMAN_BLACK), Config::PLAYER_HUMAN, Config::BLACK));
+	graphicPanel->AddButton(new NewPlayerButton("AI White", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_NEW_AI_WHITE), Config::PLAYER_AI, Config::WHITE));
+	graphicPanel->AddButton(new NewPlayerButton("AI Black", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_NEW_AI_BLACK), Config::PLAYER_AI, Config::BLACK));
 }

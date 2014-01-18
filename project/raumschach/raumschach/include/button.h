@@ -66,4 +66,17 @@ public:
 	void Action(Raumschach * controller);
 };
 
+// Initializes a new player to the board
+class NewPlayerButton : public Button
+{
+public:
+	NewPlayerButton(const CharString& lbl, Colour col, Rect position, Config::PlayerType type, Config::PlayerColour colour);
+
+	void Action(Raumschach * controller);
+
+private:
+	Config::PlayerType type;
+	Config::PlayerColour colour;
+};
+
 #endif // __BUTTON_H__

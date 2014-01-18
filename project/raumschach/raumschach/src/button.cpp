@@ -139,3 +139,15 @@ void ResetButton::Action(Raumschach * controller)
 
 	controller->PostMessage("Reset the game. White start!");
 }
+
+NewPlayerButton::NewPlayerButton(const CharString& lbl, Colour col, Rect position, Config::PlayerType type, Config::PlayerColour colour)
+	:
+	Button(lbl, col, position),
+	type(type),
+	colour(colour)
+{}
+
+void NewPlayerButton::Action(Raumschach * controller)
+{
+	controller->InitializeNewPlayer(type, colour);
+}

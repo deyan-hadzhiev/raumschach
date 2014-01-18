@@ -22,7 +22,7 @@ public:
 
 	// Initializes everything the chess needs to function
 	// this includes boards, move pools, renderers, textures, etc.
-	void Initialize(Player * white, Player * black);
+	void Initialize();
 
 	// Main loop
 	void Start();
@@ -43,6 +43,8 @@ public:
 	// Initialize the board and state with the given pieces and flags
 	// NOTE: this includes refresh of gui and all states
 	void InitializeBoard(const DynamicArray<Piece>& pieces, unsigned short flags);
+	// Initialize a new player of the specified colour (deletes the current player)
+	void InitializeNewPlayer(Config::PlayerType type, Config::PlayerColour colour);
 
 private:
 	// helper function for button initialization
@@ -55,6 +57,7 @@ private:
 	BitBoardMovePool * movePool;
 	BoardTileState * tileState;
 	RandomGenerator * randGen;
+	bool gameEnded; // this is true if a checkmate or stalemate occured
 
 	Piece selectedPiece;
 	BitBoard selectedPieceMoves;
@@ -62,9 +65,7 @@ private:
 
 	CharString playerNames[Config::PCOLOUR_COUNT];
 
-	// not owned, so no destruction
-	Player * whitePlayer;
-	Player * blackPlayer;
+	Player * players[Config::PCOLOUR_COUNT];
 };
 
 #endif // __RAUMSCHACH_H__

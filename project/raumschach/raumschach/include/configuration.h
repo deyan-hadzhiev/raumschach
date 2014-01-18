@@ -62,6 +62,13 @@ namespace Config
 		BOTH_COLOURS,
 	};
 
+	enum PlayerType
+	{
+		PLAYER_HUMAN,
+		PLAYER_AI,
+		PLAYERS_TYPE_COUNT,
+	};
+
 	inline PlayerColour GetOppositePlayer(PlayerColour col)
 	{
 		return (col == WHITE ? BLACK : WHITE);
@@ -120,6 +127,7 @@ namespace Config
 	static const char BOARD_SAVE_FILENAME[] = "SavedBoard.dat";
 	static const int BOARD_SAVE_HEADER_SIZE = 2; // bytes in the save file that will be used for header flags
 	static const int BOARD_STATE_TURN_COLOUR_LSHIFT = 0;
+	static const int BOARD_STATE_GAME_ENDED_LSHIFT = 2;
 };
 
 namespace GraphicConfig
@@ -227,11 +235,12 @@ namespace GraphicConfig
 	static const unsigned long BUTTON_COLOUR = 0x555555ff;
 	static const int BUTTON_SIZE_WIDTH = 120;
 	static const int BUTTON_SIZE_HEIGHT = 40;
+	static const int BUTTON_POSITION_HORIZONTAL = PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT - PANEL_PADDING; // the 'y' coordinate of the buttons
 
 	static const int POSITION_BUTTON_SAVE[] =
 	{
 		PANEL_SIZE_WIDTH - BUTTON_SIZE_WIDTH * 2 - PANEL_PADDING * 2, //x
-		PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT - PANEL_PADDING, //y
+		BUTTON_POSITION_HORIZONTAL, //y
 		BUTTON_SIZE_WIDTH, //width
 		BUTTON_SIZE_HEIGHT, //height
 	};
@@ -239,7 +248,7 @@ namespace GraphicConfig
 	static const int POSITION_BUTTON_LOAD[] =
 	{
 		PANEL_SIZE_WIDTH - BUTTON_SIZE_WIDTH - PANEL_PADDING, //x
-		PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT - PANEL_PADDING, //y
+		BUTTON_POSITION_HORIZONTAL, //y
 		BUTTON_SIZE_WIDTH, //width
 		BUTTON_SIZE_HEIGHT, //height
 	};
@@ -247,11 +256,42 @@ namespace GraphicConfig
 	static const int POSITION_BUTTON_RESET[] =
 	{
 		PANEL_PADDING, //x
-		PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT - PANEL_PADDING, //y
+		BUTTON_POSITION_HORIZONTAL, //y
 		BUTTON_SIZE_WIDTH, //width
 		BUTTON_SIZE_HEIGHT, //height
 	};
 
+	static const int POSITION_BUTTON_NEW_AI_BLACK[] =
+	{
+		PANEL_SIZE_WIDTH - PANEL_PADDING * 4 - BUTTON_SIZE_WIDTH * 3, // x
+		BUTTON_POSITION_HORIZONTAL, // y
+		BUTTON_SIZE_WIDTH, // width
+		BUTTON_SIZE_HEIGHT, // height
+	};
+
+	static const int POSITION_BUTTON_NEW_AI_WHITE[] =
+	{
+		PANEL_SIZE_WIDTH - PANEL_PADDING * 5 - BUTTON_SIZE_WIDTH * 4, // x
+		BUTTON_POSITION_HORIZONTAL, // y
+		BUTTON_SIZE_WIDTH, // width
+		BUTTON_SIZE_HEIGHT, // height
+	};
+
+	static const int POSITION_BUTTON_NEW_HUMAN_BLACK[] =
+	{
+		PANEL_SIZE_WIDTH - PANEL_PADDING * 6 - BUTTON_SIZE_WIDTH * 5, // x
+		BUTTON_POSITION_HORIZONTAL, // y
+		BUTTON_SIZE_WIDTH, // width
+		BUTTON_SIZE_HEIGHT, // height
+	};
+
+	static const int POSITION_BUTTON_NEW_HUMAN_WHITE[] =
+	{
+		PANEL_SIZE_WIDTH - PANEL_PADDING * 7 - BUTTON_SIZE_WIDTH * 6, // x
+		BUTTON_POSITION_HORIZONTAL, // y
+		BUTTON_SIZE_WIDTH, // width
+		BUTTON_SIZE_HEIGHT, // height
+	};
 };
 
 #endif // __CONFIGURAION_H__

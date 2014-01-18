@@ -313,6 +313,15 @@ bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMov
 		// set the new position of the piece
 		pieces[pieceIndex].SetPositionVector(pos);
 
+		Config::PlayerColour pieceColour = pieces[pieceIndex].GetColour();
+		// if the piece is a pawn and has reached the ending tile, it is considered to become a queen
+		if(pieces[pieceIndex].GetType() == Config::PAWN
+			&& Const::PAWN_REPRODUCE_VECTORS[pieceColour].y == pos.y
+			&& Const::PAWN_REPRODUCE_VECTORS[pieceColour].z == pos.z)
+		{
+			pieces[pieceIndex].SetType(Config::QUEEN);
+		}
+
 		if(destinationIndex >= 0)
 		{
 			pieces.RemoveItem(destinationIndex);
@@ -411,18 +420,38 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 		}
 
 		// if no moves were found, then this is STALEMATE
-		if(!foundMove && kingState != KingState::CHECK)
+		if((kingState != KingState::CHECK && !foundMove))
 		{
 			kingState = KingState::STALEMATE;
 		}
-		else if(kingState == KingState::CHECK) // if no moves were found and the king is under a check, this is a checkmate
+		else if(!foundMove && kingState == KingState::CHECK) // if no moves were found and the king is under a check, this is a checkmate
 		{
 			kingState = KingState::CHECKMATE;
 		}
 
 	}
+	else if(PieceStalemate())
+	{
+		kingState = KingState::STALEMATE;
+	}
 
 	return kingState;
+}
+
+bool Board::PieceStalemate() const
+{
+	int pieceCount[Config::PCOLOUR_COUNT][Config::PLAYER_PIECES_COUNT] = {0};
+	for(int i = 0; i < pieces.Count(); ++i)
+	{
+		pieceCount[pieces[i].GetColour()][pieces[i].GetType()]++;
+	}
+
+	bool noStalemate = pieceCount[Config::WHITE][Config::QUEEN] > 0 || pieceCount[Config::BLACK][Config::QUEEN] > 0 // if there is at least one queen
+		|| pieceCount[Config::WHITE][Config::PAWN] > 0 || pieceCount[Config::BLACK][Config::PAWN] > 0 // if there is at least one pawn (pawns reproduce)
+		|| (pieceCount[Config::WHITE][Config::BISHOP] + pieceCount[Config::WHITE][Config::KNIGHT] + pieceCount[Config::WHITE][Config::ROOK] + pieceCount[Config::WHITE][Config::UNICORN]) > 2 // if we have more than two of the other figures
+		|| (pieceCount[Config::BLACK][Config::BISHOP] + pieceCount[Config::BLACK][Config::KNIGHT] + pieceCount[Config::BLACK][Config::ROOK] + pieceCount[Config::BLACK][Config::UNICORN]) > 2; // if we have more than two of the other figures
+
+	return !noStalemate;
 }
 
 bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const

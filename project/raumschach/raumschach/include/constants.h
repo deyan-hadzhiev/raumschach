@@ -168,6 +168,13 @@ namespace Const
 		Piece(Config::PAWN, Config::BLACK, ChessVector(3, 3, 3)),
 		Piece(Config::PAWN, Config::BLACK, ChessVector(4, 3, 3)),
 	};
+
+	// the line at which the pawns reproduce themselves
+	static const ChessVector PAWN_REPRODUCE_VECTORS[Config::PCOLOUR_COUNT] =
+	{
+		ChessVector(0, 4, 4), // for the white pawns
+		ChessVector(0, 0, 0), // for the black pawns
+	};
 };
 
 #endif // __CONSTANTS_H__

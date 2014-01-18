@@ -10,16 +10,10 @@
 
 int main(int argc, char **argv){
 
-	Player * white = new Player;
-	Player * black = new Player;
-
 	Raumschach rchess;
 
-	rchess.Initialize(white, black);
+	rchess.Initialize();
 	rchess.Start();
-
-	delete white;
-	delete black;
 
 	return 0;
 }

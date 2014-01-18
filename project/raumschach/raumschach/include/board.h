@@ -107,6 +107,8 @@ public:
 	bool KingInCheck(Config::PlayerColour col) const;
 	// returns true if the king with the specified colour is under check
 	Config::KingState KingCheckState(Config::PlayerColour col) const;
+	// returns true if the game is stalemate by pieces
+	bool PieceStalemate() const;
 	// returns true if the tile is threatened by any piece of the specified player colour
 	bool TileThreatened(ChessVector pos, Config::PlayerColour col) const;
 
