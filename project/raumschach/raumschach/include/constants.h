@@ -12,13 +12,13 @@ namespace Const
 	static const int PIECE_WORTH[Config::PIECE_TYPE_COUNT] =
 	{
 		0, // no type
-		80, // king
-		14, // queen
-		6, // rook
-		4, // bishop
-		4, // knight
-		3, // unicorn
-		1, // pawn
+		1000, // king // the king's worth is just enormous so that the alpha-beta would preserve it
+		140, // queen
+		60, // rook
+		40, // bishop
+		40, // knight
+		30, // unicorn
+		10, // pawn
 	};
 
 #define VECTORS_COUNT(x) sizeof((x)) / (sizeof(coord) * 3)
@@ -37,6 +37,28 @@ namespace Const
 
 	static const ChessVector BOARD_CENTER = ChessVector(2, 2, 2);
 	static const coord MAX_DISTANCE_TO_CENTER = BOARD_CENTER.GetManhattanDistance(ChessVector(0, 0, 0));
+
+	static const int PIECE_MAX_MOVE_COUNT[Config::PIECE_TYPE_COUNT] =
+	{
+		0, // no type
+		26, // the king's moves from the center of the board
+		52, // the queen's moves from the center of the board
+		12, // the rook's moves from the center of the board
+		24, // the bishop's moves from the center of the board
+		24, // the knight's moves from the center of the board
+		16, // the unicorn's moves from the center of the board
+		7, // the pawn's moves count (if there are enemies all around it)
+	};
+
+	// sum of all the pieces' possible moves (in practice it is highly unlikely to be more than half of that)
+	static const int MAX_PIECES_MOVES =
+		PIECE_MAX_MOVE_COUNT[Config::KING] +
+		PIECE_MAX_MOVE_COUNT[Config::QUEEN] +
+		PIECE_MAX_MOVE_COUNT[Config::ROOK] * 2 +
+		PIECE_MAX_MOVE_COUNT[Config::BISHOP] * 2 +
+		PIECE_MAX_MOVE_COUNT[Config::KNIGHT] * 2 +
+		PIECE_MAX_MOVE_COUNT[Config::UNICORN] * 2 +
+		PIECE_MAX_MOVE_COUNT[Config::PAWN] * 10;
 
 	static const coord PAWN_MOVE_VECTORS_WHITE[][3] = {{0, 1, 0}, {0, 0, 1}};
 	static const coord PAWN_CAPTURE_VECTORS_WHITE[][3] = {{1, 1, 0}, {-1, 1, 0}, {1, 0, 1}, {-1, 0, 1}, {0, 1, 1}};
@@ -178,6 +200,8 @@ namespace Const
 		ChessVector(0, 4, 4), // for the white pawns
 		ChessVector(0, 0, 0), // for the black pawns
 	};
+
+	static const coord PAWN_DISTANCE_TO_REPRODUCTION = 7;
 };
 
 #endif // __CONSTANTS_H__

@@ -4,6 +4,22 @@
 #include "utils.h"
 #include "piece.h"
 
+class Move
+{
+public:
+	Move();
+	Move(Piece p, ChessVector dest, const BitBoard& moves, int h = 0);
+	Move(const Move& copy);
+	Move& operator=(const Move& assign);
+
+	friend bool operator<(const Move& rhs, const Move& lhs);
+
+	Piece piece;
+	ChessVector destination;
+	int heuristic;
+	BitBoard pieceMoves;
+};
+
 class Board;
 
 class BitBoardMovePool
@@ -53,6 +69,8 @@ public:
 
 	// set all the tiles flag to the specifed state
 	void SetChanged(bool flag);
+	// set a specific tile to the specified state
+	void SetChanged(ChessVector pos, bool flag = true);
 	bool GetChangedTile(ChessVector pos) const;
 
 private:
@@ -75,8 +93,17 @@ public:
 	// returns a BitBoard with all the pieces of the speciefied colour's bits set to 1
 	BitBoard GetPiecesBitBoard(Config::PlayerColour colour) const;
 
-	// copies all the pieces with the specified colour to the destination array
-	void GetPiecesArray(DynamicArray<Piece>& dest, Config::PlayerColour colour) const;
+	/** Copies all the pieces with the specified colour to the destination array
+	* @param colour[in] : The colour of the player which pieces will be pushed to the array
+	* @param dest[out] : The destination array in which the pieces will be pushed
+	*/
+	void GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const;
+
+	/** Retrieves all the possible moves a player can make on the given board
+	* @param colour[in] : The colour of the player, which moves we're getting
+	* @param moveArray[out] : The destination array in which the moves will be pushed
+	*/
+	void GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray) const;
 
 	// check if this move is valid (short and slower version)
 	bool ValidMove(Piece piece, ChessVector pos) const;

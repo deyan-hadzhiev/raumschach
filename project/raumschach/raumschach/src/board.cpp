@@ -3,6 +3,46 @@
 #include "utils.h"
 #include "board.h"
 
+Move::Move()
+	:
+	piece(),
+	destination(0, 0, 0),
+	heuristic(0)
+{}
+
+Move::Move(Piece p, ChessVector dest, const BitBoard& moves, int h)
+	:
+	piece(p),
+	destination(dest),
+	pieceMoves(moves),
+	heuristic(h)
+{}
+
+Move::Move(const Move& copy)
+	:
+	piece(copy.piece),
+	destination(copy.destination),
+	pieceMoves(copy.pieceMoves),
+	heuristic(copy.heuristic)
+{}
+
+Move& Move::operator=(const Move& assign)
+{
+	if(this != &assign)
+	{
+		piece = assign.piece;
+		destination = assign.destination;
+		pieceMoves = assign.pieceMoves;
+		heuristic = assign.heuristic;
+	}
+	return *this;
+}
+
+bool operator<(const Move& rhs, const Move& lhs)
+{
+	return rhs.heuristic > lhs.heuristic;
+}
+
 BitBoardMovePool::BitBoardMovePool()
 {
 	for(int i = 0; i < COUNT_OF(pool); ++i)
@@ -232,7 +272,7 @@ BitBoard Board::GetPiecesBitBoard(Config::PlayerColour colour) const
 	return result;
 }
 
-void Board::GetPiecesArray(DynamicArray<Piece>& dest, Config::PlayerColour colour) const
+void Board::GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const
 {
 	dest.Clear();
 	if(colour == Config::BOTH_COLOURS)
@@ -248,7 +288,35 @@ void Board::GetPiecesArray(DynamicArray<Piece>& dest, Config::PlayerColour colou
 			dest += pieces[i];
 		}
 	}
+}
 
+void Board::GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray) const
+{
+	// first get the list of pieces with this colour
+	DynamicArray<Piece> validPieces;
+	GetPiecesArray(colour, validPieces);
+
+	BitBoard friendlyPieces = GetPiecesBitBoard(colour);
+	BitBoard enemyPieces = GetPiecesBitBoard(Config::GetOppositePlayer(colour));
+
+	// then create a move for each piece
+	for(int i = 0; i < validPieces.Count(); ++i)
+	{
+		DynamicArray<ChessVector> destinations(Const::PIECE_MAX_MOVE_COUNT[validPieces[i].GetType()]);
+
+		BitBoard availableMoves = movePool->GetPieceMoves(validPieces[i], friendlyPieces, enemyPieces, this);
+		availableMoves.GetVectors(destinations);
+
+		// now for every possible move, push an object to the moveArray
+		for(int j = 0; j < destinations.Count(); ++j)
+		{
+			// add the destination to the possible moves only if it is valid
+			// this saves us several computations later and is assuring that
+			// this are all valid moves that can be made
+			if(ValidMove(validPieces[i], destinations[j], availableMoves))
+				moveArray += Move(validPieces[i], destinations[j], availableMoves);
+		}
+	}
 }
 
 bool Board::ValidMove(Piece piece, ChessVector pos) const
@@ -401,7 +469,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
 	if(!hasMoveableTile)
 	{
 		DynamicArray<Piece> friendlyPieces;
-		GetPiecesArray(friendlyPieces, king.GetColour());
+		GetPiecesArray(king.GetColour(), friendlyPieces);
 		bool foundMove = false;
 		// check every piece for available moves, until at least one available move is found
 		for(int i = 0; i < friendlyPieces.Count() && !foundMove; ++i)
@@ -528,7 +596,7 @@ int Board::GetMaterialBalance() const
 	int balance[Config::PCOLOUR_COUNT] = {0};
 	for(int i = 0; i < pieces.Count(); ++i)
 	{
-		balance[pieces[i].GetColour()] += pieces[i].GetWorth();
+		balance[pieces[i].GetColour()] += pieces[i].GetWorth() + pieces[i].GetPositionWorth(pieces[i].GetPositionVector());
 	}
 	return balance[Config::WHITE] - balance[Config::BLACK];
 }
@@ -644,6 +712,11 @@ void BoardTileState::SetChanged(bool flag)
 	{
 		changed[i] = flag;
 	}
+}
+
+void BoardTileState::SetChanged(ChessVector pos, bool flag)
+{
+	changed[pos.GetVectorCoord()] = flag;
 }
 
 bool BoardTileState::GetChangedTile(ChessVector pos) const

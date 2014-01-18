@@ -117,6 +117,16 @@ public:
 		return arr[index];
 	}
 
+	// sorts the array in place using quicksort for the sorting
+	// NOTE: the class of the array must have operator< predefined
+	void Sort()
+	{
+		if(count > 1)
+		{
+			QuickSort(0, count - 1);
+		}
+	}
+
 	// if there isn't 'n' in size currently free, the array allocates them
 	void Alloc(int n)
 	{
@@ -141,6 +151,43 @@ private:
 			arr = nullptr;
 			arr = tmp;
 		}
+	}
+
+	// quicksorts the array in place
+	void QuickSort(int left, int right)
+	{
+		if(left < right)
+		{
+			int pivotIndex = (left + right) >> 1; // (left + right) / 2
+			// get the new pivot index after partitioning
+			pivotIndex = Partition(left, right, pivotIndex);
+
+			// recursively quicksort the other two parts
+			QuickSort(left, pivotIndex - 1);
+			QuickSort(pivotIndex + 1, right);
+		}
+	}
+
+	// used by the quicksort algorithm for partitioning
+	int Partition(int left, int right, int pivotIndex)
+	{
+		Type pivotValue = arr[pivotIndex];
+		arr[pivotIndex] = arr[right];
+		arr[right] = pivotValue;
+		int storeIndex = left;
+		for(int i = left; i < right; ++i)
+		{
+			if(arr[i] < pivotValue)
+			{
+				Type tmp = arr[i];
+				arr[i] = arr[storeIndex];
+				arr[storeIndex] = tmp;
+				++storeIndex;
+			}
+		}
+		arr[right] = arr[storeIndex];
+		arr[storeIndex] = pivotValue;
+		return storeIndex;
 	}
 
 	Type* arr;

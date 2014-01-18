@@ -467,12 +467,14 @@ void Render::StartEventLoop(Raumschach* handler)
 			}
 		}
 
-		handler->MakePlayerMove();
-
 		if(refresh)
 		{
 			handler->IdleDraw();
 			refresh = false;
+		}
+		else
+		{
+			handler->MakePlayerMove();
 		}
 	}
 }

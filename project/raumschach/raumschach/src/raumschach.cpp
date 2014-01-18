@@ -50,14 +50,14 @@ Raumschach::~Raumschach()
 
 void Raumschach::Initialize()
 {
-	players[Config::WHITE] = new HumanPlayer();
+	players[Config::WHITE] = new HumanPlayer(Config::WHITE);
 	playerNames[Config::WHITE] = "White Player";
 	if(!players[Config::WHITE])
 	{
 		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	players[Config::BLACK] = new HumanPlayer();
+	players[Config::BLACK] = new HumanPlayer(Config::BLACK);
 	playerNames[Config::BLACK] = "Black Player";
 	if(!players[Config::BLACK])
 	{
@@ -245,11 +245,14 @@ void Raumschach::MakePlayerMove()
 	Piece movedPiece;
 	ChessVector destination;
 	// if the player generates moves, make validation check and register it on the board
-	if(!triedMove && players[currentPlayer]->GetMove(movedPiece, destination, board, movePool))
+	if(!triedMove && players[currentPlayer]->GetMove(movedPiece, destination, board))
 	{
 		if(board->MovePiece(movedPiece, destination))
 		{
+			tileState->SetChanged(movedPiece.GetPositionVector());
+			tileState->SetChanged(destination);
 			RegisterMove();
+			IdleDraw();
 		}
 		else
 		{
@@ -321,7 +324,7 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 	switch (type)
 	{
 	case Config::PLAYER_HUMAN:
-		players[colour] = new HumanPlayer();
+		players[colour] = new HumanPlayer(colour);
 		PostMessage("Initialized a new Human " + playerNames[colour]);
 		break;
 	case Config::PLAYER_AI:
@@ -329,7 +332,7 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 			int newDifficulty = (previousDifficulty != 0 ? previousDifficulty + 1 : Config::AI_PLAYER_SEARCH_DEPTH);
 			newDifficulty = Utils::Min(newDifficulty, Config::MAX_AI_PLAYER_SEARCH_DEPTH);
 			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty));
-			players[colour] = new AIPlayer(newDifficulty, randGen);
+			players[colour] = new AIPlayer(newDifficulty, colour, movePool, randGen);
 			break;
 		}
 	case Config::PLAYERS_TYPE_COUNT:

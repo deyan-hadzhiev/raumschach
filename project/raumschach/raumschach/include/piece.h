@@ -33,6 +33,9 @@ public:
 	*/
 	int GetWorth() const;
 
+	// Return the worth only of the specified position if the current piece occupies it
+	int GetPositionWorth(ChessVector pos) const;
+
 	friend bool operator<(const Piece& lhs, const Piece& rhs);
 private:
 
