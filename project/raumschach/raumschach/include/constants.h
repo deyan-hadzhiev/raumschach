@@ -35,6 +35,9 @@ namespace Const
 		false, // pawn
 	};
 
+	static const ChessVector BOARD_CENTER = ChessVector(2, 2, 2);
+	static const coord MAX_DISTANCE_TO_CENTER = BOARD_CENTER.GetManhattanDistance(ChessVector(0, 0, 0));
+
 	static const coord PAWN_MOVE_VECTORS_WHITE[][3] = {{0, 1, 0}, {0, 0, 1}};
 	static const coord PAWN_CAPTURE_VECTORS_WHITE[][3] = {{1, 1, 0}, {-1, 1, 0}, {1, 0, 1}, {-1, 0, 1}, {0, 1, 1}};
 

@@ -439,10 +439,8 @@ void Render::ErrorExit()
 
 void Render::StartEventLoop(Raumschach* handler)
 {
-	using namespace std;
 	bool quit = false;
 	SDL_Event evnt;
-	int counter = 0;
 	bool refresh = true;
 	while( !quit )
 	{
@@ -467,12 +465,13 @@ void Render::StartEventLoop(Raumschach* handler)
 					break;
 				}
 			}
-			
 		}
+
+		handler->MakePlayerMove();
 
 		if(refresh)
 		{
-			handler->IdleDrawBoard();
+			handler->IdleDraw();
 			refresh = false;
 		}
 	}

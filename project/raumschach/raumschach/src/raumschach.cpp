@@ -22,7 +22,8 @@ Raumschach::Raumschach()
 	selectedPiece(),
 	selectedPieceMoves(),
 	currentPlayer(Config::WHITE),
-	gameEnded(false)
+	gameEnded(false),
+	triedMove(false)
 {}
 
 Raumschach::~Raumschach()
@@ -104,7 +105,7 @@ void Raumschach::Initialize()
 		Error("ERROR: Failed to initialize the tile state board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	randGen = new RandomGenerator(time(NULL));
+	randGen = new RandomGenerator((unsigned int) time(NULL));
 	if(! randGen)
 	{
 		Error("ERROR: Failed to initialize the random generator").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
@@ -113,12 +114,12 @@ void Raumschach::Initialize()
 
 void Raumschach::Start()
 {
-	IdleDrawBoard();
+	IdleDraw();
 	PostMessage("Game started. White move first");
 	render->StartEventLoop(this);
 }
 
-void Raumschach::IdleDrawBoard()
+void Raumschach::IdleDraw()
 {
 	graphicBoard->DrawBoard(board, tileState);
 	tileState->SetChanged(false);
@@ -127,7 +128,7 @@ void Raumschach::IdleDrawBoard()
 
 void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 {
-	if(button == SysConfig::LEFT && graphicBoard->OnBoard(x, y) && !gameEnded)
+	if(button == SysConfig::LEFT && graphicBoard->OnBoard(x, y) && !gameEnded && players[currentPlayer]->GetType() != Config::PLAYER_AI)
 	{
 		ChessVector clickedPos = graphicBoard->ScreenToBoard(Rect(x, y));
 		Piece clickedPiece = board->GetPiece(clickedPos);
@@ -152,47 +153,19 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 			if(board->ValidMove(selectedPiece, clickedPos, selectedPieceMoves))
 			{
 				board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves, true);
-				Config::PlayerColour oppositePlayerColour = Config::GetOppositePlayer(currentPlayer);
-				selectedPiece = Piece();
-				tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
-				if(board->KingInCheck(oppositePlayerColour))
-				{
-					Piece oppositeKing = board->GetKing(oppositePlayerColour);
-					tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
-				}
 
-				Config::KingState kingState = board->KingCheckState(oppositePlayerColour);
-
-				CharString gameStateString;
-				switch (kingState)
-				{
-				case Config::NORMAL:
-					gameStateString = playerNames[oppositePlayerColour] + " is next to move";
-					break;
-				case Config::CHECK:
-					gameStateString = playerNames[oppositePlayerColour] + " is under check!";
-					break;
-				case Config::CHECKMATE:
-					gameStateString = "Checkmate! " + playerNames[currentPlayer] + " wins!";
-					gameEnded = true;
-					break;
-				case Config::STALEMATE:
-					gameStateString = "Stalemate! End of game";
-					gameEnded = true;
-					break;
-				case Config::NO_KING:
-					gameStateString = "No king! This is probably a bug. Please report!";
-					gameEnded = true;
-					break;
-				default:
-					break;
-				}
-
-				PostMessage(gameStateString);
-
-				currentPlayer = oppositePlayerColour;
+				RegisterMove();
+			}
+			else
+			{
+				PostMessage("This is not a valid move!");
 			}
 		}
+		else
+		{
+			PostMessage("This is not a valid operation!");
+		}
+
 	}
 	else
 	{
@@ -220,6 +193,72 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 				tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
 			}
 		}
+	}
+}
+
+void Raumschach::RegisterMove()
+{
+	Config::PlayerColour oppositePlayerColour = Config::GetOppositePlayer(currentPlayer);
+	selectedPiece = Piece();
+	tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
+	if(board->KingInCheck(oppositePlayerColour))
+	{
+		Piece oppositeKing = board->GetKing(oppositePlayerColour);
+		tileState->SetBoardTileState(Config::TILE_CAPTUREABLE, oppositeKing.GetPositionVector());
+	}
+
+	Config::KingState kingState = board->KingCheckState(oppositePlayerColour);
+
+	CharString gameStateString;
+	switch (kingState)
+	{
+	case Config::NORMAL:
+		gameStateString = playerNames[oppositePlayerColour] + " is next to move";
+		break;
+	case Config::CHECK:
+		gameStateString = playerNames[oppositePlayerColour] + " is under check!";
+		break;
+	case Config::CHECKMATE:
+		gameStateString = "Checkmate! " + playerNames[currentPlayer] + " wins!";
+		gameEnded = true;
+		break;
+	case Config::STALEMATE:
+		gameStateString = "Stalemate! End of game";
+		gameEnded = true;
+		break;
+	case Config::NO_KING:
+		gameStateString = "No king! This is probably a bug. Please report!";
+		gameEnded = true;
+		break;
+	default:
+		break;
+	}
+
+	PostMessage(gameStateString);
+
+	currentPlayer = oppositePlayerColour;
+	triedMove = false;
+}
+
+void Raumschach::MakePlayerMove()
+{
+	Piece movedPiece;
+	ChessVector destination;
+	// if the player generates moves, make validation check and register it on the board
+	if(!triedMove && players[currentPlayer]->GetMove(movedPiece, destination, board, movePool))
+	{
+		if(board->MovePiece(movedPiece, destination))
+		{
+			RegisterMove();
+		}
+		else
+		{
+			PostMessage("Something in move generation failed!");
+		}
+	}
+	else
+	{
+		triedMove = true;
 	}
 }
 
@@ -270,6 +309,12 @@ void Raumschach::InitializeBoard(const DynamicArray<Piece>& pieces, unsigned sho
 
 void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColour colour)
 {
+	int previousDifficulty = 0;
+	if(players[colour]->GetType() == Config::PLAYER_AI)
+	{
+		previousDifficulty = players[colour]->GetDepth();
+	}
+
 	delete players[colour];
 	players[colour] = nullptr;
 
@@ -280,9 +325,13 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 		PostMessage("Initialized a new Human " + playerNames[colour]);
 		break;
 	case Config::PLAYER_AI:
-		PostMessage("Initialized a new AI " + playerNames[colour]);
-		players[colour] = new AIPlayer();
-		break;
+		{
+			int newDifficulty = (previousDifficulty != 0 ? previousDifficulty + 1 : Config::AI_PLAYER_SEARCH_DEPTH);
+			newDifficulty = Utils::Min(newDifficulty, Config::MAX_AI_PLAYER_SEARCH_DEPTH);
+			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty));
+			players[colour] = new AIPlayer(newDifficulty, randGen);
+			break;
+		}
 	case Config::PLAYERS_TYPE_COUNT:
 		Error("No player type specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 		break;

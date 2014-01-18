@@ -5,6 +5,28 @@
 
 #define	COUNT_OF(x) sizeof((x)) / sizeof((x[0]))
 
+namespace Utils
+{
+	template<class Type>
+	Type Min(Type a, Type b)
+	{
+		return (a < b ? a : b);
+	}
+
+	template<class Type>
+	Type Max(Type a, Type b)
+	{
+		return (a > b ? a : b);
+	}
+
+	template<class Type>
+	Type Abs(Type a)
+	{
+		return (a < 0 ? -a : a);
+	}
+
+};
+
 template< class Type >
 class DynamicArray
 {
@@ -153,6 +175,9 @@ public:
 	ChessVector& operator-();
 
 	coord GetVectorCoord() const;
+
+	// Returns the Manhattan distance to the vector 'to'
+	coord GetManhattanDistance(ChessVector to) const;
 };
 
 class Rect

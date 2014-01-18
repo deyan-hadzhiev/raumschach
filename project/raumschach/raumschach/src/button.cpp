@@ -77,6 +77,8 @@ void BoardLoadButton::Action(Raumschach * controller)
 		fclose(input);
 
 		controller->InitializeBoard(pieces, flags);
+		controller->InitializeNewPlayer(Config::PLAYER_HUMAN, Config::WHITE);
+		controller->InitializeNewPlayer(Config::PLAYER_HUMAN, Config::BLACK);
 
 		CharString msg = CharString("Successfully loaded the game from file : ") + CharString(Config::BOARD_SAVE_FILENAME);
 		controller->PostMessage(msg);
@@ -136,6 +138,8 @@ void ResetButton::Action(Raumschach * controller)
 	unsigned short flags = 0;
 
 	controller->InitializeBoard(newBoard, flags);
+	controller->InitializeNewPlayer(Config::PLAYER_HUMAN, Config::WHITE);
+	controller->InitializeNewPlayer(Config::PLAYER_HUMAN, Config::BLACK);
 
 	controller->PostMessage("Reset the game. White start!");
 }

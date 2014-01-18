@@ -69,6 +69,9 @@ namespace Config
 		PLAYERS_TYPE_COUNT,
 	};
 
+	static const int AI_PLAYER_SEARCH_DEPTH = 4;
+	static const int MAX_AI_PLAYER_SEARCH_DEPTH = 16;
+
 	inline PlayerColour GetOppositePlayer(PlayerColour col)
 	{
 		return (col == WHITE ? BLACK : WHITE);

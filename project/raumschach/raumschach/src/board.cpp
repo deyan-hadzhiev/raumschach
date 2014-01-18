@@ -523,6 +523,31 @@ Piece Board::GetKing(Config::PlayerColour col) const
 	return Piece();
 }
 
+int Board::GetMaterialBalance() const
+{
+	int balance[Config::PCOLOUR_COUNT] = {0};
+	for(int i = 0; i < pieces.Count(); ++i)
+	{
+		balance[pieces[i].GetColour()] += pieces[i].GetWorth();
+	}
+	return balance[Config::WHITE] - balance[Config::BLACK];
+}
+
+int Board::GetTileWorth(ChessVector pos) const
+{
+	Piece tilePiece = GetPiece(pos);
+	int tileWorth = 0;
+	if(tilePiece.GetType() != Config::NO_TYPE)
+	{
+		tileWorth = tilePiece.GetWorth();
+	}
+	else
+	{
+		tileWorth = (int) pos.GetManhattanDistance(Const::BOARD_CENTER);
+	}
+	return tileWorth;
+}
+
 int Board::GetPieceIndex(ChessVector pos) const
 {
 	int index = -1;

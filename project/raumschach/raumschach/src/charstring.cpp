@@ -1,5 +1,7 @@
+#include <cstdio>
 #include <string.h>
 #include "charstring.h"
+#include "utils.h"
 
 CharString::CharString(const char * src)
 	:
@@ -8,7 +10,7 @@ CharString::CharString(const char * src)
 {
 	if(src)
 	{
-		int n = strlen(src) + 1;
+		int n = (int) strlen(src) + 1;
 		if(n > 1)
 		{
 			data = new char[n];
@@ -39,6 +41,24 @@ CharString::CharString(const CharString& copy)
 		if(data)
 		{
 			strncpy(data, copy.data, size);
+		}
+	}
+}
+
+CharString::CharString(int number)
+	:
+	data(nullptr),
+	size(0)
+{
+	char numberStr[MAX_INTEGER_STRING_LENGTH] = "";
+	sprintf(numberStr, "%d", number);
+	size = (int) strnlen(numberStr, COUNT_OF(numberStr)) + 1;
+	if(size)
+	{
+		data = new char[size];
+		if(data)
+		{
+			strncpy(data, numberStr, size);
 		}
 	}
 }

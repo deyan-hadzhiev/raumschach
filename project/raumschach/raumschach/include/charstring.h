@@ -1,11 +1,14 @@
 #ifndef __CHARSTRING_H__
 #define __CHARSTRING_H__
 
+static const int MAX_INTEGER_STRING_LENGTH = 16;
+
 class CharString
 {
 public:
 	CharString(const char * src = nullptr);
 	CharString(const CharString& copy);
+	CharString(int number);
 	~CharString();
 
 	CharString& operator=(const CharString& assign);

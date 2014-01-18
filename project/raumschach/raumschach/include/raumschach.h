@@ -27,9 +27,17 @@ public:
 	// Main loop
 	void Start();
 
-	void IdleDrawBoard();
+	// The idle draw of the board and the panel
+	void IdleDraw();
+
 	// Mouse clicks handler
 	void MouseClick(SysConfig::MouseButton button, int x, int y);
+
+	// Registers the made move (updates game state, board, current player, etc)
+	void RegisterMove();
+
+	// Call the current player GetMove(...) function
+	void MakePlayerMove();
 
 	// Outputs the provided message to the graphic panel
 	void PostMessage(const CharString& message) const;
@@ -58,6 +66,7 @@ private:
 	BoardTileState * tileState;
 	RandomGenerator * randGen;
 	bool gameEnded; // this is true if a checkmate or stalemate occured
+	bool triedMove; // if the current player already tried a move (it is valid only for ai players)
 
 	Piece selectedPiece;
 	BitBoard selectedPieceMoves;

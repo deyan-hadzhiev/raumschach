@@ -28,6 +28,9 @@ public:
 	Config::PieceType GetType() const;
 	void SetType(Config::PieceType type);
 
+	/** Returns the current piece worth
+	* NOTE: The worth may not be flat, but depend on position, moves, etc.
+	*/
 	int GetWorth() const;
 
 	friend bool operator<(const Piece& lhs, const Piece& rhs);

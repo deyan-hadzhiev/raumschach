@@ -100,6 +100,12 @@ coord ChessVector::GetVectorCoord() const
 	return z * BOARD_SIDE * BOARD_SIDE + y * BOARD_SIDE + x;
 }
 
+coord ChessVector::GetManhattanDistance(ChessVector to) const
+{
+	using Utils::Abs;
+	return Abs(x - to.x) + Abs(y - to.y) + Abs(z - to.z);
+}
+
 BitBoard::BitBoard()
 {
 	for(char i = 0; i < Config::BITBOARD_SIZE; ++i)

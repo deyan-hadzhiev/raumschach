@@ -115,6 +115,14 @@ public:
 	// only the king is special enough to have a function getting it
 	Piece GetKing(Config::PlayerColour col) const;
 
+	/** Returns the current material balance
+	* NOTE: The value is positive if the White pieces have more material and negative if the black do.
+	*/
+	int GetMaterialBalance() const;
+
+	// Returns the worth of the tile
+	int GetTileWorth(ChessVector pos) const;
+
 	Piece GetPiece(ChessVector pos) const;
 	void AddPiece(Piece piece);
 	void RemovePiece(ChessVector pos);
