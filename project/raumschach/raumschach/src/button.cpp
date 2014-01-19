@@ -155,3 +155,13 @@ void NewPlayerButton::Action(Raumschach * controller)
 {
 	controller->InitializeNewPlayer(type, colour);
 }
+
+ExitButton::ExitButton(const CharString& lbl, Colour col, Rect position)
+	:
+	Button(lbl, col, position)
+{}
+
+void ExitButton::Action(Raumschach * controller)
+{
+	controller->SetExitStatus(true);
+}

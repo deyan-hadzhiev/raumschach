@@ -268,7 +268,7 @@ unsigned long long BitBoard::GetBits( coord offset, unsigned long long mask) con
 	char bitOffset = offset % SIZE;
 	unsigned long long srcBitMask = 0xffffffffffffffff << bitOffset;
 	unsigned long long srcBits = (bits[bitn] << bitOffset) & srcBitMask;
-	if( bitn < Config::BITBOARD_SIZE && offset)
+	if( bitn < Config::BITBOARD_SIZE - 1 && offset)
 	{
 		srcBits |= (bits[bitn + 1] >> (SIZE - bitOffset)) & ~ srcBitMask;
 	}
@@ -282,7 +282,7 @@ void BitBoard::SetBits( unsigned long long srcBits, coord offset, unsigned long 
 	unsigned long long destBitMask = mask >> bitOffset;
 	unsigned long long destBits = srcBits >> bitOffset;
 	bits[bitn] = (bits[bitn] & ~ destBitMask) | destBits & destBitMask;
-	if( bitn < Config::BITBOARD_SIZE && offset)
+	if( bitn < Config::BITBOARD_SIZE - 1 && offset)
 	{
 		destBitMask = mask << (SIZE - bitOffset);
 		destBits = srcBits << (SIZE - bitOffset);

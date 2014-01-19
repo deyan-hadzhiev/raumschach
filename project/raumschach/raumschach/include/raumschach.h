@@ -42,6 +42,11 @@ public:
 	// Outputs the provided message to the graphic panel
 	void PostMessage(const CharString& message) const;
 
+	// Getter for the exit status
+	bool GetExitStatus() const;
+	// Setter for the exit status
+	void SetExitStatus(bool flag);
+
 	// functions used by the buttons to define the game state
 
 	// Returns the current board
@@ -65,8 +70,10 @@ private:
 	BitBoardMovePool * movePool;
 	BoardTileState * tileState;
 	RandomGenerator * randGen;
+
 	bool gameEnded; // this is true if a checkmate or stalemate occured
 	bool triedMove; // if the current player already tried a move (it is valid only for ai players)
+	bool exitStatus; // true if the raumschach has to close
 
 	Piece selectedPiece;
 	BitBoard selectedPieceMoves;

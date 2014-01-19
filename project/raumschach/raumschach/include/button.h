@@ -79,4 +79,12 @@ private:
 	Config::PlayerColour colour;
 };
 
+class ExitButton : public Button
+{
+public:
+	ExitButton(const CharString& lbl, Colour col, Rect position);
+
+	void Action(Raumschach * controller);
+};
+
 #endif // __BUTTON_H__

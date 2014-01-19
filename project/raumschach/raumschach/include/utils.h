@@ -36,7 +36,7 @@ public:
 		arr = new Type[size];
 	}
 
-	DynamicArray(const DynamicArray& copy) : arr(nullptr), size(copy.size), count(copy.count)
+	DynamicArray(const DynamicArray<Type>& copy) : arr(nullptr), size(copy.size), count(copy.count)
 	{
 		arr = new Type[size];
 		for(int i = 0; i < count; ++i)
@@ -60,7 +60,7 @@ public:
 		arr = nullptr;
 	}
 
-	DynamicArray& operator=(const DynamicArray& assign)
+	DynamicArray& operator=(const DynamicArray<Type>& assign)
 	{
 		if(this != &assign)
 		{

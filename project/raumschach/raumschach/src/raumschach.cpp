@@ -23,7 +23,8 @@ Raumschach::Raumschach()
 	selectedPieceMoves(),
 	currentPlayer(Config::WHITE),
 	gameEnded(false),
-	triedMove(false)
+	triedMove(false),
+	exitStatus(false)
 {}
 
 Raumschach::~Raumschach()
@@ -270,6 +271,16 @@ void Raumschach::PostMessage(const CharString& message) const
 	graphicPanel->PostMessage(message);
 }
 
+bool Raumschach::GetExitStatus() const
+{
+	return exitStatus;
+}
+
+void Raumschach::SetExitStatus(bool flag)
+{
+	exitStatus = flag;
+}
+
 const Board * Raumschach::GetBoard() const
 {
 	return board;
@@ -333,6 +344,7 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 			newDifficulty = Utils::Min(newDifficulty, Config::MAX_AI_PLAYER_SEARCH_DEPTH);
 			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty));
 			players[colour] = new AIPlayer(newDifficulty, colour, movePool, randGen);
+			triedMove = false;
 			break;
 		}
 	case Config::PLAYERS_TYPE_COUNT:
@@ -345,9 +357,10 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 
 void Raumschach::InitButtons()
 {
-	graphicPanel->AddButton(new ResetButton("Reset game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_RESET)));
-	graphicPanel->AddButton(new BoardSaveButton("Save game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_SAVE)));
-	graphicPanel->AddButton(new BoardLoadButton("Load game", Colour(GraphicConfig::BUTTON_COLOUR) ,Rect(GraphicConfig::POSITION_BUTTON_LOAD)));
+	graphicPanel->AddButton(new ResetButton("Reset game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_RESET)));
+	graphicPanel->AddButton(new BoardSaveButton("Save game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_SAVE)));
+	graphicPanel->AddButton(new BoardLoadButton("Load game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_LOAD)));
+	graphicPanel->AddButton(new ExitButton("Exit", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_EXIT)));
 
 	// new player buttons
 	graphicPanel->AddButton(new NewPlayerButton("Human White", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_NEW_HUMAN_WHITE), Config::PLAYER_HUMAN, Config::WHITE));

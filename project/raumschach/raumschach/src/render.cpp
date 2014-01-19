@@ -476,5 +476,7 @@ void Render::StartEventLoop(Raumschach* handler)
 		{
 			handler->MakePlayerMove();
 		}
+
+		quit |= handler->GetExitStatus();
 	}
 }

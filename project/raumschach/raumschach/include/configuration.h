@@ -23,7 +23,7 @@ namespace SysConfig
 	};
 
 	static const int SCREEN_WIDTH = 1370; // screen width
-	static const int SCREEN_HEIGHT = 380; // screen height
+	static const int SCREEN_HEIGHT = 400; // screen height
 
 	static const int SCREEN_SPAWN_X = 100;
 	static const int SCREEN_SPAWN_Y = 100;
@@ -69,7 +69,7 @@ namespace Config
 		PLAYERS_TYPE_COUNT,
 	};
 
-	static const int AI_PLAYER_SEARCH_DEPTH = 4;
+	static const int AI_PLAYER_SEARCH_DEPTH = 2;
 	static const int MAX_AI_PLAYER_SEARCH_DEPTH = 16;
 	static const int INT_NEGATIVE_INFINITY = 1 << (sizeof(int) * 8 - 1);
 	static const int INT_POSITIVE_INFINITY = ~ INT_NEGATIVE_INFINITY;
@@ -254,6 +254,14 @@ namespace GraphicConfig
 	{
 		PANEL_SIZE_WIDTH - BUTTON_SIZE_WIDTH - PANEL_PADDING, //x
 		BUTTON_POSITION_HORIZONTAL, //y
+		BUTTON_SIZE_WIDTH, //width
+		BUTTON_SIZE_HEIGHT, //height
+	};
+
+	static const int POSITION_BUTTON_EXIT[] =
+	{
+		PANEL_SIZE_WIDTH - BUTTON_SIZE_WIDTH - PANEL_PADDING, //x
+		PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT * 2 - PANEL_PADDING * 2, //y
 		BUTTON_SIZE_WIDTH, //width
 		BUTTON_SIZE_HEIGHT, //height
 	};
