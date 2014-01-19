@@ -75,7 +75,7 @@ GraphicPanel::GraphicPanel(Render * render, Rect position)
 	:
 	render(render),
 	pos(position),
-	textRect(position.x + GraphicConfig::PANEL_PADDING, position.y + GraphicConfig::PANEL_PADDING, position.width - GraphicConfig::PANEL_PADDING * 2, GraphicConfig::ASCII_CHART_CHAR_HEIGHT),
+	textRect(position.x + GraphicConfig::PANEL_PADDING, position.y + GraphicConfig::PANEL_PADDING, GraphicConfig::PANEL_TEXT_AREA_WIDTH, GraphicConfig::ASCII_CHART_CHAR_HEIGHT),
 	textRender(nullptr),
 	buttons(10),
 	fullRefresh(true)

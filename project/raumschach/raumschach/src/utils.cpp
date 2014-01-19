@@ -31,11 +31,6 @@ void BitBoard::SetBits( unsigned long long srcBits, coord offset, unsigned long 
 	}
 }
 
-coord BitBoard::GetBitCount() const
-{
-	return BitCount(bits[0]) + BitCount(bits[1]);
-}
-
 void BitBoard::GetVectors(DynamicArray<ChessVector>& dest) const
 {
 	dest.Clear();

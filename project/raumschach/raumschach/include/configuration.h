@@ -74,6 +74,8 @@ namespace Config
 	static const int INT_NEGATIVE_INFINITY = 1 << (sizeof(int) * 8 - 1);
 	static const int INT_POSITIVE_INFINITY = ~ INT_NEGATIVE_INFINITY;
 
+	static const int GAME_MAX_MOVES = 0;
+
 	inline PlayerColour GetOppositePlayer(PlayerColour col)
 	{
 		return (col == WHITE ? BLACK : WHITE);
@@ -243,6 +245,8 @@ namespace GraphicConfig
 	static const int BUTTON_SIZE_WIDTH = 120;
 	static const int BUTTON_SIZE_HEIGHT = 40;
 	static const int BUTTON_POSITION_HORIZONTAL = PANEL_SIZE_HEIGHT - BUTTON_SIZE_HEIGHT - PANEL_PADDING; // the 'y' coordinate of the buttons
+
+	static const int PANEL_TEXT_AREA_WIDTH = PANEL_SIZE_WIDTH - BUTTON_SIZE_WIDTH - PANEL_PADDING * 3;
 
 	static const int POSITION_BUTTON_SAVE[] =
 	{

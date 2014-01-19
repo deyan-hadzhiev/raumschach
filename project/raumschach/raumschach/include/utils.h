@@ -438,7 +438,12 @@ public:
 
 	unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const; // returns the bits with the given offset, and the specified mask ( 1 is the default mask)
 	void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT); // sets the bits with the given offset using only those from the specified mask
-	coord GetBitCount() const; // take the current object's bit count
+
+	// take the current object's bit count
+	coord GetBitCount() const
+	{
+		return BitCount(bits[0]) + BitCount(bits[1]);
+	}
 
 	void GetVectors(DynamicArray<ChessVector>& dest) const; // sets all bits to proper vectors in the specified DynamicArray
 

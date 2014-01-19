@@ -51,20 +51,6 @@ Raumschach::~Raumschach()
 
 void Raumschach::Initialize()
 {
-	players[Config::WHITE] = new HumanPlayer(Config::WHITE);
-	playerNames[Config::WHITE] = "White Player";
-	if(!players[Config::WHITE])
-	{
-		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
-	}
-
-	players[Config::BLACK] = new HumanPlayer(Config::BLACK);
-	playerNames[Config::BLACK] = "Black Player";
-	if(!players[Config::BLACK])
-	{
-		Error("ERROR: No black player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
-	}
-
 	render = new Render(SysConfig::SCREEN_WIDTH, SysConfig::SCREEN_HEIGHT);
 	if(! render)
 	{
@@ -110,6 +96,22 @@ void Raumschach::Initialize()
 	if(! randGen)
 	{
 		Error("ERROR: Failed to initialize the random generator").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+	}
+
+	players[Config::WHITE] = new HumanPlayer(Config::WHITE);
+	//players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::WHITE, movePool, randGen);
+	playerNames[Config::WHITE] = "White Player";
+	if(!players[Config::WHITE])
+	{
+		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+	}
+
+	players[Config::BLACK] = new HumanPlayer(Config::BLACK);
+	//players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::BLACK, movePool, randGen);
+	playerNames[Config::BLACK] = "Black Player";
+	if(!players[Config::BLACK])
+	{
+		Error("ERROR: No black player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 }
 
@@ -199,6 +201,13 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 
 void Raumschach::RegisterMove()
 {
+	static int registeredMoves = 1;
+	if(Config::GAME_MAX_MOVES && registeredMoves > Config::GAME_MAX_MOVES)
+	{
+		exitStatus = true;
+	}
+	registeredMoves++;
+
 	Config::PlayerColour oppositePlayerColour = Config::GetOppositePlayer(currentPlayer);
 	selectedPiece = Piece();
 	tileState->SetBoardTileState(Config::TILE_NORMAL, Config::BITBOARD_FULL_BOARD);
