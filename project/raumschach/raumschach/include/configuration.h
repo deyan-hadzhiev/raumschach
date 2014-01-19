@@ -120,7 +120,9 @@ namespace Config
 
 	static const int BOARD_SIDE = 5;
 	static const int BOARD_SIZE = BOARD_SIDE * BOARD_SIDE * BOARD_SIDE; // the size of the board
-	static const char BITBOARD_SIZE = 2; // the size of the bitboard array of bitholding structs, so it could contain all the necessary coords
+	// the size of the bitboard array of bitholding structs, so it could contain all the necessary coords
+	// NOTE: if this constant is changed, the BitBoard implementations have to be changed as well, as it is unrolled
+	static const char BITBOARD_SIZE = 2;
 
 	static const unsigned long long BITBOARD_FULL_BOARD[] = { 0xffffffffffffffff, 0xfffffffffffffff8};
 	static const unsigned long long BITBOARD_BIT = 0x8000000000000000; // just one bit mask for BitBoard::GetBit(...)

@@ -53,7 +53,7 @@ public:
 			arr[i] = srcArr[i];
 		}
 	}
-	
+
 	~DynamicArray()
 	{
 		delete[] arr;
@@ -104,7 +104,7 @@ public:
 
 	// get the count of elements
 	int Count() const { return count; }
-	
+
 	// element accessor
 	Type& operator[](int index)
 	{
@@ -200,31 +200,97 @@ class ChessVector
 public:
 	coord x,y,z;
 
-	ChessVector();
-	explicit ChessVector(const coord coordArray[]);
-	explicit ChessVector(coord x, coord y, coord z);
-	ChessVector(const ChessVector& copy);
-	explicit ChessVector(coord singleCoord);
+	ChessVector() : x(0), y(0), z(0) {}
+	explicit ChessVector(const coord coordArray[]) : x(coordArray[0]), y(coordArray[1]), z(coordArray[2]) {}
+	explicit ChessVector(coord x, coord y, coord z) : x(x), y(y), z(z) {}
+	ChessVector(const ChessVector& copy) : x(copy.x), y(copy.y), z(copy.z) {}
+	explicit ChessVector(coord singleCoord)
+	{
+		z = singleCoord / (Config::BOARD_SIDE * Config::BOARD_SIDE);
+		y = (singleCoord % (Config::BOARD_SIDE * Config::BOARD_SIDE)) / Config::BOARD_SIDE;
+		x = singleCoord % Config::BOARD_SIDE;
+	}
 
-	ChessVector& operator=(const ChessVector& assign);
+	inline ChessVector& operator=(const ChessVector& assign)
+	{
+		x = assign.x;
+		y = assign.y;
+		z = assign.z;
+		return *this;
+	}
 
-	ChessVector& operator+=(ChessVector rhs);
-	ChessVector& operator-=(ChessVector rhs);
-	ChessVector& operator*=( coord scale);
+	inline ChessVector& operator+=(ChessVector rhs)
+	{
+		x += rhs.x;
+		y += rhs.y;
+		z += rhs.z;
+		return *this;
+	}
 
-	friend const ChessVector operator+(ChessVector lhs, ChessVector rhs);
-	friend const ChessVector operator-(ChessVector lhs, ChessVector rhs);
-	friend const ChessVector operator*(ChessVector lhs, coord scale);
-	friend const ChessVector operator*(coord scale, ChessVector rhs);
-	friend bool operator==(ChessVector lhs, ChessVector rhs);
-	friend bool operator!=(ChessVector lhs, ChessVector rhs);
+	inline ChessVector& operator-=(ChessVector rhs)
+	{
+		x -= rhs.x;
+		y -= rhs.y;
+		z -= rhs.z;
+		return *this;
+	}
 
-	ChessVector& operator-();
+	inline ChessVector& operator*=( coord scale)
+	{
+		x *= scale;
+		y *= scale;
+		z *= scale;
+		return *this;
+	}
 
-	coord GetVectorCoord() const;
+	inline friend const ChessVector operator+(ChessVector lhs, ChessVector rhs)
+	{
+		return ChessVector(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z);
+	}
+
+	inline friend const ChessVector operator-(ChessVector lhs, ChessVector rhs)
+	{
+		return ChessVector(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z);
+	}
+
+	inline friend const ChessVector operator*(ChessVector lhs, coord scale)
+	{
+		return ChessVector(lhs.x * scale, lhs.y * scale, lhs.z * scale);
+	}
+
+	inline friend const ChessVector operator*(coord scale, ChessVector rhs)
+	{
+		return ChessVector(rhs.x * scale, rhs.y * scale, rhs.z * scale);
+	}
+
+	inline friend bool operator==(ChessVector lhs, ChessVector rhs)
+	{
+		return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z;
+	}
+
+	inline friend bool operator!=(ChessVector lhs, ChessVector rhs)
+	{
+		return lhs.x != rhs.x || lhs.y != rhs.y || lhs.z != rhs.z;
+	}
+
+	inline ChessVector& operator-()
+	{
+		x = -x;
+		y = -y;
+		z = -z;
+		return *this;
+	}
+
+	inline coord GetVectorCoord() const
+	{
+		return z * Config::BOARD_SIDE * Config::BOARD_SIDE + y * Config::BOARD_SIDE + x;
+	}
 
 	// Returns the Manhattan distance to the vector 'to'
-	coord GetManhattanDistance(ChessVector to) const;
+	inline coord GetManhattanDistance(ChessVector to) const
+	{
+		return Utils::Abs(x - to.x) + Utils::Abs(y - to.y) + Utils::Abs(z - to.z);
+	}
 };
 
 class Rect
@@ -238,7 +304,7 @@ public:
 	Rect(const Rect& copy) : x(copy.x), y(copy.y), width(copy.width), height(copy.height) {}
 	Rect(const int vec[4]) : x(vec[0]), y(vec[1]), width(vec[2]), height(vec[3]) {}
 
-	Rect& operator=(const Rect& assign)
+	inline Rect& operator=(const Rect& assign)
 	{
 		x = assign.x;
 		y = assign.y;
@@ -247,7 +313,7 @@ public:
 		return *this;
 	}
 
-	bool Inside(int sx, int sy) const
+	inline bool Inside(int sx, int sy) const
 	{
 		return sx >= x && sx < (width + x) && sy >= y && sy < (height + y);
 	}
@@ -257,31 +323,119 @@ public:
 class BitBoard
 {
 public:
-	// only for debug
-	friend void PrintBitBoard( const BitBoard& bb);
 
-	BitBoard();
-	BitBoard(const unsigned long long sBits[]);
-	BitBoard(const BitBoard& copy);
-	explicit BitBoard(ChessVector pos);
+	BitBoard()
+	{
+		bits[0] = 0UL;
+		bits[1] = 0UL;
+	}
 
-	BitBoard& operator=(const BitBoard& assign);
+	BitBoard(const unsigned long long sBits[])
+	{
+		bits[0] = sBits[0];
+		bits[1] = sBits[1];
+	}
 
-	BitBoard& operator~();
-	BitBoard& operator&=(const BitBoard& rhs);
-	BitBoard& operator|=(const BitBoard& rhs);
-	BitBoard& operator^=(const BitBoard& rhs);
+	// this is specifically for the implementation with two bit chains
+	BitBoard(unsigned long long lbit, unsigned long long rbit)
+	{
+		bits[0] = lbit;
+		bits[1] = rbit;
+	}
 
-	friend const BitBoard operator~(const BitBoard& lhs);
-	friend const BitBoard operator&(const BitBoard& lhs, const BitBoard& rhs);
-	friend const BitBoard operator|(const BitBoard& lhs, const BitBoard& rhs);
-	friend const BitBoard operator^(const BitBoard& lhs, const BitBoard& rhs);
+	BitBoard(const BitBoard& copy)
+	{
+		bits[0] = copy.bits[0];
+		bits[1] = copy.bits[1];
+	}
 
-	bool operator==(const BitBoard& rhs) const;
-	bool operator!=(const BitBoard& rhs) const;
-	operator bool() const;
+	explicit BitBoard(ChessVector pos)
+	{
+		bits[0] = 0UL;
+		bits[1] = 0UL;
+		SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+	}
 
-	void Zero(); // makes all bits zeroes
+	inline BitBoard& operator=(const BitBoard& assign)
+	{
+		if(this != &assign)
+		{
+			bits[0] = assign.bits[0];
+			bits[1] = assign.bits[1];
+		}
+		return *this;
+	}
+
+	inline BitBoard& operator~()
+	{
+		bits[0] = ~ bits[0];
+		bits[1] = ~ bits[1];
+		return (*this);
+	}
+
+	inline BitBoard& operator&=(const BitBoard& rhs)
+	{
+		bits[0] &= rhs.bits[0];
+		bits[1] &= rhs.bits[1];
+		return *this;
+	}
+
+	inline BitBoard& operator|=(const BitBoard& rhs)
+	{
+		bits[0] |= rhs.bits[0];
+		bits[1] |= rhs.bits[1];
+		return *this;
+	}
+
+	inline BitBoard& operator^=(const BitBoard& rhs)
+	{
+		bits[0] ^= rhs.bits[0];
+		bits[1] ^= rhs.bits[1];
+		return *this;
+	}
+
+	inline friend const BitBoard operator~(const BitBoard& lhs)
+	{
+		return BitBoard(~lhs.bits[0], ~lhs.bits[1]);
+	}
+
+	inline friend const BitBoard operator&(const BitBoard& lhs, const BitBoard& rhs)
+	{
+		return BitBoard(lhs.bits[0] & rhs.bits[0], lhs.bits[1] & rhs.bits[1]);
+	}
+
+	inline friend const BitBoard operator|(const BitBoard& lhs, const BitBoard& rhs)
+	{
+		return BitBoard(lhs.bits[0] | rhs.bits[0], lhs.bits[1] | rhs.bits[1]);
+	}
+
+	inline friend const BitBoard operator^(const BitBoard& lhs, const BitBoard& rhs)
+	{
+		return BitBoard(lhs.bits[0] ^ rhs.bits[0], lhs.bits[1] ^ rhs.bits[1]);
+	}
+
+	inline bool operator==(const BitBoard& rhs) const
+	{
+		return bits[0] == rhs.bits[0] && bits[1] == rhs.bits[1];
+	}
+
+	inline bool operator!=(const BitBoard& rhs) const
+	{
+		return bits[0] != rhs.bits[0] || bits[1] != rhs.bits[1];
+	}
+
+	inline operator bool() const
+	{
+		return bits[0] != 0UL || bits[1] != 0UL;
+	}
+
+	// makes all bits zeroes
+	inline void Zero()
+	{
+		bits[0] = 0UL;
+		bits[1] = 0UL;
+	}
+
 	unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const; // returns the bits with the given offset, and the specified mask ( 1 is the default mask)
 	void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT); // sets the bits with the given offset using only those from the specified mask
 	coord GetBitCount() const; // take the current object's bit count
@@ -293,9 +447,10 @@ public:
 	static coord BitCount( T src)
 	{
 		coord count = 0;
-		for( coord i = 0; i < sizeof(T) * 8; ++i)
+		while(src)
 		{
-			count += (src >> i) & 1;
+			src &= src - 1;
+			++count;
 		}
 		return count;
 	}

@@ -7,26 +7,79 @@
 class Piece
 {
 public:
-	Piece();
-	Piece(Config::PieceType type, Config::PlayerColour col, coord pos);
-	Piece(Config::PieceType type, Config::PlayerColour col, ChessVector pos);
-	Piece(const Piece& copy);
+	Piece() : flags(0) {}
 
-	Piece& operator=(const Piece& assign);
+	Piece(Config::PieceType type, Config::PlayerColour col, coord pos) : flags(0)
+	{
+		flags |= ((short) type) << Config::PIECE_TYPE_LSHIFT;
+		flags |= ((short) col) << Config::PIECE_COLOUR_LSHIFT;
+		flags |= ((short) pos) << Config::PIECE_POSITION_LSHIFT;
+	}
 
-	friend bool operator==(const Piece& lhs, const Piece& rhs);
-	friend bool operator!=(const Piece& lhs, const Piece& rhs);
+	Piece(Config::PieceType type, Config::PlayerColour col, ChessVector pos) : flags(0)
+	{
+		flags |= ((short) type) << Config::PIECE_TYPE_LSHIFT;
+		flags |= ((short) col) << Config::PIECE_COLOUR_LSHIFT;
+		flags |= ((short) pos.GetVectorCoord()) << Config::PIECE_POSITION_LSHIFT;
+	}
 
-	ChessVector GetPositionVector() const;
-	void SetPositionVector(ChessVector pos);
-	coord GetPositionCoord() const;
-	void SetPositionCoord(coord pos);
+	Piece(const Piece& copy) : flags(copy.flags) {}
 
-	Config::PlayerColour GetColour() const;
-	void SetColour(Config::PlayerColour col);
+	Piece& operator=(const Piece& assign)
+	{
+		flags = assign.flags;
+		return *this;
+	}
 
-	Config::PieceType GetType() const;
-	void SetType(Config::PieceType type);
+	inline friend bool operator==(const Piece& lhs, const Piece& rhs)
+	{
+		return lhs.flags == rhs.flags;
+	}
+
+	inline friend bool operator!=(const Piece& lhs, const Piece& rhs)
+	{
+		return lhs.flags != rhs.flags;
+	}
+
+	inline ChessVector GetPositionVector() const
+	{
+		return ChessVector( GetPositionCoord());
+	}
+
+	inline void SetPositionVector(ChessVector pos)
+	{
+		SetPositionCoord( pos.GetVectorCoord());
+	}
+
+	inline coord GetPositionCoord() const
+	{
+		return (coord) GetFlag(Config::PIECE_POSITION_MASK, Config::PIECE_POSITION_LSHIFT);
+	}
+
+	inline void SetPositionCoord(coord pos)
+	{
+		SetFlag( (short) pos, Config::PIECE_POSITION_MASK, Config::PIECE_POSITION_LSHIFT);
+	}
+
+	inline Config::PlayerColour GetColour() const
+	{
+		return (Config::PlayerColour) GetFlag(Config::PIECE_COLOUR_MASK, Config::PIECE_COLOUR_LSHIFT);
+	}
+
+	inline void SetColour(Config::PlayerColour col)
+	{
+		SetFlag( (short) col, Config::PIECE_COLOUR_MASK, Config::PIECE_COLOUR_LSHIFT);
+	}
+
+	inline Config::PieceType GetType() const
+	{
+		return (Config::PieceType) GetFlag(Config::PIECE_TYPE_MASK, Config::PIECE_TYPE_LSHIFT);
+	}
+
+	inline void SetType(Config::PieceType type)
+	{
+		SetFlag( (short) type, Config::PIECE_TYPE_MASK, Config::PIECE_TYPE_LSHIFT);
+	}
 
 	/** Returns the current piece worth
 	* NOTE: The worth may not be flat, but depend on position, moves, etc.
@@ -36,15 +89,18 @@ public:
 	// Return the worth only of the specified position if the current piece occupies it
 	int GetPositionWorth(ChessVector pos) const;
 
-	friend bool operator<(const Piece& lhs, const Piece& rhs);
+	friend bool operator<(const Piece& lhs, const Piece& rhs)
+	{
+		return lhs.GetPositionCoord() < rhs.GetPositionCoord();
+	}
 private:
 
-	void SetFlag(unsigned short flag, unsigned short mask, char offset)
+	inline void SetFlag(unsigned short flag, unsigned short mask, char offset)
 	{
 		flags = (flags & ~ mask) | (flag << offset);
 	}
 
-	unsigned short GetFlag(unsigned short mask, char offset) const
+	inline unsigned short GetFlag(unsigned short mask, char offset) const
 	{
 		return (flags & mask) >> offset;
 	}

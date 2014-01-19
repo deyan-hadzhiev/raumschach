@@ -167,13 +167,16 @@ BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec
 
 BitBoard BitBoardMovePool::GetPieceFullMoves(Piece p) const
 {
-	if(p.GetType() != Config::PAWN)
+	const Config::PieceType pieceType = p.GetType();
+	const coord piecePos = p.GetPositionCoord();
+	const Config::PlayerColour pieceColour = p.GetColour();
+	if(pieceType != Config::PAWN)
 	{
-		return pool[p.GetType()][p.GetPositionCoord()];
+		return pool[pieceType][piecePos];
 	}
 	else
 	{
-		return pool[p.GetType() + p.GetColour()][p.GetPositionCoord()] | pawnCapturePool[p.GetColour()][p.GetPositionCoord()];
+		return pool[pieceType + pieceColour][piecePos] | pawnCapturePool[pieceColour][piecePos];
 	}
 }
 
