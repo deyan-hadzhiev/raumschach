@@ -48,7 +48,6 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 		return false;
 
 	int alpha = Config::INT_NEGATIVE_INFINITY;
-	int beta = Config::INT_POSITIVE_INFINITY;
 
 	DynamicArray<Move> moves(Const::MAX_PIECES_MOVES);
 	board->GetPossibleMoves(playerColour, moves);
@@ -60,8 +59,10 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 	// sort the moves so that the most valuable are first
 	moves.Sort();
 
+	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(playerColour);
+
 	BitBoard playerPieces = board->GetPiecesBitBoard(playerColour);
-	BitBoard enemyPieces = board->GetPiecesBitBoard(Config::GetOppositePlayer(playerColour));
+	BitBoard enemyPieces = board->GetPiecesBitBoard(oppositeColour);
 
 	for(int i = 0; i < moves.Count(); ++i)
 	{
@@ -71,7 +72,7 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 		// make the move and start an Alpha Beta from it
 		movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-		int alphaBetaResult = AlphaBeta(movedBoard, searchDepth, alpha, beta, false, Config::GetOppositePlayer(playerColour));
+		int alphaBetaResult = AlphaBeta(movedBoard, searchDepth, alpha, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
 
 		if(alphaBetaResult > alpha)
 		{
@@ -88,7 +89,7 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 {
 	if(depth <= 0)
 	{
-		return board.GetMaterialBalance() * (playerColour == Config::WHITE ? 1 : -1);
+		return board.GetMaterialBalance() * (colour == Config::WHITE ? 1 : -1);
 	}
 
 	DynamicArray<Move> moves(Const::MAX_PIECES_MOVES);
@@ -101,8 +102,10 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 	// sort the moves so that the most valuable are first
 	moves.Sort();
 
+	Config::PlayerColour oppositePlayer = Config::GetOppositePlayer(colour);
+
 	BitBoard playerPieces = board.GetPiecesBitBoard(colour);
-	BitBoard enemyPieces = board.GetPiecesBitBoard(Config::GetOppositePlayer(colour));
+	BitBoard enemyPieces = board.GetPiecesBitBoard(oppositePlayer);
 
 	if(maximizing)
 	{
@@ -111,7 +114,7 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 			Board movedBoard(board);
 			movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(movedBoard, depth, alpha, beta, false, Config::GetOppositePlayer(colour));
+			int res = AlphaBeta(movedBoard, depth - 1, alpha, beta, false, oppositePlayer);
 			alpha = Utils::Max(alpha, res);
 			if( beta <= alpha)
 				break;
@@ -125,7 +128,7 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 			Board movedBoard(board);
 			movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(movedBoard, depth - 1, alpha, beta, true, Config::GetOppositePlayer(colour));
+			int res = AlphaBeta(movedBoard, depth - 1, alpha, beta, true, oppositePlayer);
 			beta = Utils::Min(beta, res);
 			if(beta <= alpha)
 				break;

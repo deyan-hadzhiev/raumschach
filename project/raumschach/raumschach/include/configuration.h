@@ -69,8 +69,8 @@ namespace Config
 		PLAYERS_TYPE_COUNT,
 	};
 
-	static const int AI_PLAYER_SEARCH_DEPTH = 2;
-	static const int MAX_AI_PLAYER_SEARCH_DEPTH = 16;
+	static const int AI_PLAYER_SEARCH_DEPTH = 3;
+	static const int MAX_AI_PLAYER_SEARCH_DEPTH = 10;
 	static const int INT_NEGATIVE_INFINITY = 1 << (sizeof(int) * 8 - 1);
 	static const int INT_POSITIVE_INFINITY = ~ INT_NEGATIVE_INFINITY;
 

@@ -12,13 +12,13 @@ namespace Const
 	static const int PIECE_WORTH[Config::PIECE_TYPE_COUNT] =
 	{
 		0, // no type
-		1000, // king // the king's worth is just enormous so that the alpha-beta would preserve it
-		140, // queen
-		60, // rook
-		40, // bishop
-		40, // knight
-		30, // unicorn
-		10, // pawn
+		1500, // king // the king's worth is just enormous so that the alpha-beta would preserve it
+		160, // queen
+		70, // rook
+		45, // bishop
+		45, // knight
+		35, // unicorn
+		15, // pawn
 	};
 
 #define VECTORS_COUNT(x) sizeof((x)) / (sizeof(coord) * 3)

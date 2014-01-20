@@ -239,7 +239,9 @@ Board::Board(BitBoardMovePool * pool)
 
 Board::Board(const DynamicArray< Piece >& pieceArray, BitBoardMovePool * pool)
 	: pieces(pieceArray), movePool(pool)
-{}
+{
+	pieces.Sort();
+}
 
 Board::Board(const Board& copy)
 	: pieces(copy.pieces), movePool(copy.movePool)
@@ -397,6 +399,8 @@ bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMov
 		{
 			pieces.RemoveItem(destinationIndex);
 		}
+
+		pieces.Sort();
 	}
 
 	return result;
@@ -621,11 +625,26 @@ int Board::GetTileWorth(ChessVector pos) const
 
 int Board::GetPieceIndex(ChessVector pos) const
 {
+	const coord destCoord = pos.GetVectorCoord();
 	int index = -1;
-	for(int i = 0; i < pieces.Count() && index == -1; ++i)
+	int left = 0;
+	int right = pieces.Count() - 1;
+	int half;
+	while(left <= right && index == -1)
 	{
-		if(pieces[i].GetPositionVector() == pos)
-			index = i;
+		half = (left + right) >> 1;
+		if(pieces[half].GetPositionCoord() == destCoord)
+		{
+			index = half;
+		}
+		else if(pieces[half].GetPositionCoord() < destCoord)
+		{
+			left = half + 1;
+		}
+		else
+		{
+			right = half - 1;
+		}
 	}
 	return index;
 }
@@ -639,20 +658,23 @@ Piece Board::GetPiece(ChessVector pos) const
 void Board::AddPiece(Piece piece)
 {
 	pieces += piece;
+	pieces.Sort();
 }
 
 void Board::RemovePiece(ChessVector pos)
 {
 	int index = GetPieceIndex(pos);
 	if( index != -1)
+	{
 		pieces.RemoveItem(index);
+		pieces.Sort();
+	}
 }
 
 void Board::SetMovePool(BitBoardMovePool * pool)
 {
 	movePool = pool;
 }
-
 
 BoardTileState::BoardTileState()
 {
