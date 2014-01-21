@@ -61,7 +61,7 @@ class BitBoardMovePool
 public:
 	BitBoardMovePool();
 	~BitBoardMovePool();
-	
+
 	void Initalize();
 	// used only for slight optimizations - the proper moves should still be calculated by the GetPieceMoves(...)
 	// but this is a lot faster and can be used just to check the visibility of piece and tile
@@ -122,10 +122,25 @@ public:
 
 	Board& operator=(const Board& assign);
 
-	static bool ValidVector(ChessVector vec);
+	inline static bool ValidVector(ChessVector vec)
+	{
+		return vec.x >= 0 && vec.x < Config::BOARD_SIDE
+			&& vec.y >= 0 && vec.y < Config::BOARD_SIDE
+			&& vec.z >= 0 && vec.z < Config::BOARD_SIDE;
+	}
 
 	// returns a BitBoard with all the pieces of the speciefied colour's bits set to 1
-	BitBoard GetPiecesBitBoard(Config::PlayerColour colour) const;
+	inline BitBoard GetPiecesBitBoard(Config::PlayerColour colour) const
+	{
+		if(colour != Config::BOTH_COLOURS)
+		{
+			return piecesBitBoards[colour];
+		}
+		else
+		{
+			return piecesBitBoards[Config::WHITE] | piecesBitBoards[Config::BLACK];
+		}
+	}
 
 	/** Copies all the pieces with the specified colour to the destination array
 	* @param colour[in] : The colour of the player which pieces will be pushed to the array
@@ -154,7 +169,7 @@ public:
 	* @retval : class representing a made move, so it can be saved and undone later
 	*/
 	MadeMove MovePiece(Piece piece, ChessVector pos, bool pretested = false);
-	
+
 	/** Move a piece on the board
 	* @param piece : The piece to be moved
 	* @param pos : The destination position
@@ -197,6 +212,8 @@ public:
 private:
 	// get the index of the piece at the specified position, or -1 if there is no piece there
 	int GetPieceIndex(ChessVector pos) const;
+
+	BitBoard piecesBitBoards[Config::PCOLOUR_COUNT];
 
 	DynamicArray< Piece > pieces;
 	BitBoardMovePool * movePool;

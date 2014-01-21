@@ -104,9 +104,11 @@ BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec
 	BitBoard result;
 	ChessVector currPos = pos + vec;
 	bool intersected = false;
+	BitBoard currPosBitBoard;
 	while(Board::ValidVector(currPos) && !intersected)
 	{
-		BitBoard currPosBitBoard(currPos);
+		currPosBitBoard.Zero();
+		currPosBitBoard.SetBits(Config::BITBOARD_BIT, currPos.GetVectorCoord());
 		// if there is intersection, record it if we include intersection, otherwise just record this to the resulting vector
 		if(currPosBitBoard & intersection)
 		{
@@ -191,21 +193,34 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 
 Board::Board()
 	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(nullptr)
-{}
+{
+	piecesBitBoards[Config::WHITE] = BitBoard(0ULL, 0ULL);
+	piecesBitBoards[Config::BLACK] = BitBoard(0ULL, 0ULL);
+}
 
 Board::Board(BitBoardMovePool * pool)
 	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(pool)
-{}
+{
+	piecesBitBoards[Config::WHITE] = BitBoard(0ULL, 0ULL);
+	piecesBitBoards[Config::BLACK] = BitBoard(0ULL, 0ULL);
+}
 
 Board::Board(const DynamicArray< Piece >& pieceArray, BitBoardMovePool * pool)
 	: pieces(pieceArray), movePool(pool)
 {
 	pieces.Sort();
+	for(int i = 0; i < pieces.Count(); ++i)
+	{
+		piecesBitBoards[pieces[i].GetColour()].SetBits(Config::BITBOARD_BIT, pieces[i].GetPositionCoord());
+	}
 }
 
 Board::Board(const Board& copy)
 	: pieces(copy.pieces), movePool(copy.movePool)
-{}
+{
+	piecesBitBoards[Config::WHITE] = copy.piecesBitBoards[Config::WHITE];
+	piecesBitBoards[Config::BLACK] = copy.piecesBitBoards[Config::BLACK];
+}
 
 Board& Board::operator=(const Board& assign)
 {
@@ -213,28 +228,10 @@ Board& Board::operator=(const Board& assign)
 	{
 		pieces = assign.pieces;
 		movePool = assign.movePool;
+		piecesBitBoards[Config::WHITE] = assign.piecesBitBoards[Config::WHITE];
+		piecesBitBoards[Config::BLACK] = assign.piecesBitBoards[Config::BLACK];
 	}
 	return *this;
-}
-
-bool Board::ValidVector(ChessVector vec)
-{
-	return vec.x >= 0 && vec.x < Config::BOARD_SIDE
-		&& vec.y >= 0 && vec.y < Config::BOARD_SIDE
-		&& vec.z >= 0 && vec.z < Config::BOARD_SIDE;
-}
-
-BitBoard Board::GetPiecesBitBoard(Config::PlayerColour colour) const
-{
-	BitBoard result;
-	for(int i = 0; i < pieces.Count(); ++i)
-	{
-		if(pieces[i].GetColour() == colour || colour == Config::BOTH_COLOURS)
-		{
-			result.SetBits(Config::BITBOARD_BIT, pieces[i].GetPositionCoord());
-		}
-	}
-	return result;
 }
 
 void Board::GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const
@@ -348,6 +345,10 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availabl
 
 		// do the actual move
 
+		// update piece bit boards
+		piecesBitBoards[piece.GetColour()].SetBits(0ULL, piece.GetPositionCoord());
+		piecesBitBoards[piece.GetColour()].SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+
 		// set the new position of the piece
 		pieces[pieceIndex].SetPositionVector(pos);
 
@@ -362,10 +363,13 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availabl
 
 		if(destinationIndex >= 0)
 		{
+			// update the bit boards
+			piecesBitBoards[pieces[destinationIndex].GetColour()].SetBits(0ULL, pos.GetVectorCoord());
+
 			pieces.RemoveItem(destinationIndex);
 		}
 
-		pieces.Sort();
+		pieces.InsertionSort();
 	}
 
 	return move;
@@ -375,9 +379,16 @@ void Board::UndoMove(const MadeMove& move)
 {
 	// first return the current piece occupying the tile to it's original place
 	int pieceIndex = GetPieceIndex(move.removedPiece.GetPositionVector());
+	// this shouldn't be -1, but just to be sure
 	if(pieceIndex >= 0)
 	{
-		pieces[pieceIndex].SetPositionVector(move.sourcePosition);
+		// update bit boards
+		Piece& p = pieces[pieceIndex];
+
+		piecesBitBoards[p.GetColour()].SetBits(0ULL, p.GetPositionCoord());
+		piecesBitBoards[p.GetColour()].SetBits(Config::BITBOARD_BIT, move.sourcePosition.GetVectorCoord());
+
+		p.SetPositionVector(move.sourcePosition);
 	}
 
 	// now if this wasn't a quiet move, we must add back the removed piece
@@ -388,7 +399,7 @@ void Board::UndoMove(const MadeMove& move)
 	}
 	else
 	{
-		pieces.Sort();
+		pieces.InsertionSort();
 	}
 }
 
@@ -534,13 +545,9 @@ bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
 			}
 		}
 
-		BitBoard activeBitBoard;
-		for(int i = 0; i < activePieces.Count(); ++i)
-			activeBitBoard.SetBits(Config::BITBOARD_BIT, activePieces[i].GetPositionCoord());
+		BitBoard activeBitBoard = GetPiecesBitBoard(colour);
 
-		BitBoard passiveBitBoard;
-		for(int i = 0; i < passivePieces.Count(); ++i)
-			passiveBitBoard.SetBits(Config::BITBOARD_BIT, passivePieces[i].GetPositionCoord());
+		BitBoard passiveBitBoard = GetPiecesBitBoard(Config::GetOppositePlayer(colour));
 
 		// we set the position bit of the checked tile, se we can get proper results from pool->GetPieceMoves(...) for pawns
 		passiveBitBoard.SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
@@ -644,7 +651,8 @@ Piece Board::GetPiece(ChessVector pos) const
 void Board::AddPiece(Piece piece)
 {
 	pieces += piece;
-	pieces.Sort();
+	piecesBitBoards[piece.GetColour()].SetBits(Config::BITBOARD_BIT, piece.GetPositionCoord());
+	pieces.InsertionSort();
 }
 
 void Board::RemovePiece(ChessVector pos)
@@ -652,8 +660,9 @@ void Board::RemovePiece(ChessVector pos)
 	int index = GetPieceIndex(pos);
 	if( index != -1)
 	{
+		piecesBitBoards[pieces[index].GetColour()].SetBits(0ULL, pieces[index].GetPositionCoord());
 		pieces.RemoveItem(index);
-		pieces.Sort();
+		pieces.InsertionSort();
 	}
 }
 

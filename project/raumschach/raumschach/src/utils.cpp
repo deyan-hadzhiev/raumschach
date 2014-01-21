@@ -1,51 +1,6 @@
 #include "utils.h"
 #include "configuration.h"
 
-const coord BitBoard::SIZE = sizeof(unsigned long long) * 8;
-
-unsigned long long BitBoard::GetBits( coord offset, unsigned long long mask) const
-{
-	char bitn = offset / SIZE;
-	char bitOffset = offset % SIZE;
-	unsigned long long srcBitMask = 0xffffffffffffffff << bitOffset;
-	unsigned long long srcBits = (bits[bitn] << bitOffset) & srcBitMask;
-	if( bitn < Config::BITBOARD_SIZE - 1 && offset)
-	{
-		srcBits |= (bits[bitn + 1] >> (SIZE - bitOffset)) & ~ srcBitMask;
-	}
-	return srcBits & mask;
-}
-
-void BitBoard::SetBits( unsigned long long srcBits, coord offset, unsigned long long mask)
-{
-	char bitn = offset / SIZE;
-	char bitOffset = offset % SIZE;
-	unsigned long long destBitMask = mask >> bitOffset;
-	unsigned long long destBits = srcBits >> bitOffset;
-	bits[bitn] = (bits[bitn] & ~ destBitMask) | destBits & destBitMask;
-	if( bitn < Config::BITBOARD_SIZE - 1 && offset)
-	{
-		destBitMask = mask << (SIZE - bitOffset);
-		destBits = srcBits << (SIZE - bitOffset);
-		bits[bitn + 1] = (bits[bitn + 1] & ~ destBitMask) | destBits & destBitMask;
-	}
-}
-
-void BitBoard::GetVectors(DynamicArray<ChessVector>& dest) const
-{
-	dest.Clear();
-	coord count = GetBitCount();
-	dest.Alloc(count);
-	for(char i = 0; i < SIZE; ++i)
-	{
-		if(bits[0] & (Config::BITBOARD_BIT >> i))
-			dest += ChessVector(i);
-
-		if(bits[1] & (Config::BITBOARD_BIT >> i))
-			dest += ChessVector(SIZE + i);
-	}
-}
-
 #ifdef _DEBUG
 #include <stdio.h>
 void BitBoard::PrintBitBoard(const char* str) const
@@ -70,7 +25,7 @@ void BitBoard::PrintBitBoard(const char* str) const
 				int ch = (column - level) % Config::BOARD_SIDE;
 				int offset = level * levelSize + l * Config::BOARD_SIDE + ch;
 				unsigned long long bit = GetBits(offset);
-				line[column] = ((bit & Config::BITBOARD_BIT) != 0UL ? '1' : '0');
+				line[column] = ((bit & Config::BITBOARD_BIT) != 0ULL ? '1' : '0');
 			}
 		}
 		line[lastChar] = '\0';

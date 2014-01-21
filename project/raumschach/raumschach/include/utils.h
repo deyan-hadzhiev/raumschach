@@ -25,6 +25,10 @@ namespace Utils
 		return (a < 0 ? -a : a);
 	}
 
+	const unsigned char BITBOARD_PHYS_SIZE = sizeof(unsigned long long) * 8;
+
+	const unsigned char BITBOARD_PHYS_SIZE_OFFSET = 6; // for division with right shifts
+	const unsigned char BITBOARD_PHYS_SIZE_MOD_MASK = 0x40 - 1; // for modulo with bit operations
 };
 
 template< class Type >
@@ -126,6 +130,24 @@ public:
 			QuickSort(0, count - 1);
 		}
 	}
+
+	// insertion sorts the array in place
+	// NOTE: this should be faster for nearly sorted array than the quicksort
+	void InsertionSort()
+	{
+		for(int i = 1; i < count; ++i)
+		{
+			Type x = arr[i];
+			int j = i;
+			while(j > 0 && x < arr[j - 1])
+			{
+				arr[j] = arr[j - 1];
+				--j;
+			}
+			arr[j] = x;
+		}
+	}
+
 
 	// if there isn't 'n' in size currently free, the array allocates them
 	void Alloc(int n)
@@ -400,8 +422,8 @@ public:
 
 	BitBoard()
 	{
-		bits[0] = 0UL;
-		bits[1] = 0UL;
+		bits[0] = 0ULL;
+		bits[1] = 0ULL;
 	}
 
 	BitBoard(const unsigned long long sBits[])
@@ -425,8 +447,8 @@ public:
 
 	explicit BitBoard(ChessVector pos)
 	{
-		bits[0] = 0UL;
-		bits[1] = 0UL;
+		bits[0] = 0ULL;
+		bits[1] = 0ULL;
 		SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
 	}
 
@@ -500,18 +522,45 @@ public:
 
 	inline operator bool() const
 	{
-		return bits[0] != 0UL || bits[1] != 0UL;
+		return bits[0] != 0ULL || bits[1] != 0ULL;
 	}
 
 	// makes all bits zeroes
 	inline void Zero()
 	{
-		bits[0] = 0UL;
-		bits[1] = 0UL;
+		bits[0] = 0ULL;
+		bits[1] = 0ULL;
 	}
 
-	unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const; // returns the bits with the given offset, and the specified mask ( 1 is the default mask)
-	void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT); // sets the bits with the given offset using only those from the specified mask
+	// returns the bits with the given offset, and the specified mask ( 1 is the default mask)
+	inline unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const
+	{
+		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
+		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;
+		unsigned long long srcBitMask = 0xffffffffffffffff << bitOffset;
+		unsigned long long srcBits = (bits[bitn] << bitOffset) & srcBitMask;
+		if( bitn < Config::BITBOARD_SIZE - 1 && offset)
+		{
+			srcBits |= (bits[bitn + 1] >> (Utils::BITBOARD_PHYS_SIZE - bitOffset)) & ~ srcBitMask;
+		}
+		return srcBits & mask;
+	}
+
+	// sets the bits with the given offset using only those from the specified mask
+	inline void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT)
+	{
+		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
+		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;
+		unsigned long long destBitMask = mask >> bitOffset;
+		unsigned long long destBits = srcBits >> bitOffset;
+		bits[bitn] = (bits[bitn] & ~ destBitMask) | destBits & destBitMask;
+		if( bitn < Config::BITBOARD_SIZE - 1 && offset)
+		{
+			destBitMask = mask << (Utils::BITBOARD_PHYS_SIZE - bitOffset);
+			destBits = srcBits << (Utils::BITBOARD_PHYS_SIZE - bitOffset);
+			bits[bitn + 1] = (bits[bitn + 1] & ~ destBitMask) | destBits & destBitMask;
+		}
+	}
 
 	// take the current object's bit count
 	coord GetBitCount() const
@@ -519,7 +568,21 @@ public:
 		return BitCount(bits[0]) + BitCount(bits[1]);
 	}
 
-	void GetVectors(DynamicArray<ChessVector>& dest) const; // sets all bits to proper vectors in the specified DynamicArray
+	// sets all bits to proper vectors in the specified DynamicArray
+	inline void GetVectors(DynamicArray<ChessVector>& dest) const
+	{
+		dest.Clear();
+		coord count = GetBitCount();
+		dest.Alloc(count);
+		for(char i = 0; i < Utils::BITBOARD_PHYS_SIZE; ++i)
+		{
+			if(bits[0] & (Config::BITBOARD_BIT >> i))
+				dest += ChessVector(i);
+
+			if(bits[1] & (Config::BITBOARD_BIT >> i))
+				dest += ChessVector(Utils::BITBOARD_PHYS_SIZE + i);
+		}
+	}
 
 	// Template static function for taking any variable's number of bits
 	template < class T >
@@ -546,7 +609,6 @@ public:
 #endif // _DEBUG
 
 private:
-	static const coord SIZE;
 	unsigned long long bits[Config::BITBOARD_SIZE];
 };
 
