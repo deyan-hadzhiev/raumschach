@@ -49,8 +49,10 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	int alpha = Config::INT_NEGATIVE_INFINITY;
 
+	Board boardCopy(*board);
+
 	DynamicArray<Move> moves(Const::MAX_PIECES_MOVES);
-	board->GetPossibleMoves(playerColour, moves);
+	boardCopy.GetPossibleMoves(playerColour, moves);
 	for(int i = 0; i < moves.Count(); ++i)
 	{
 		moves[i].heuristic = MoveHeuristic(moves[i], *board);
@@ -66,13 +68,12 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	for(int i = 0; i < moves.Count(); ++i)
 	{
-		// first copy the board, as we'll make a move on it
-		Board movedBoard(*board);
-
 		// make the move and start an Alpha Beta from it
-		movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
+		MadeMove move = boardCopy.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-		int alphaBetaResult = AlphaBeta(movedBoard, searchDepth, alpha, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
+		int alphaBetaResult = AlphaBeta(boardCopy, searchDepth, alpha, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
+
+		boardCopy.UndoMove(move);
 
 		if(alphaBetaResult > alpha)
 		{
@@ -85,7 +86,7 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 	return true;
 }
 
-int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const
+int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const
 {
 	if(depth <= 0)
 	{
@@ -111,13 +112,17 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 	{
 		for(int i = 0; i < moves.Count(); ++i)
 		{
-			Board movedBoard(board);
-			movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
+			MadeMove move = board.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(movedBoard, depth - 1, alpha, beta, false, oppositePlayer);
+			int res = AlphaBeta(board, depth - 1, alpha, beta, false, oppositePlayer);
+
+			board.UndoMove(move);
+
 			alpha = Utils::Max(alpha, res);
 			if( beta <= alpha)
+			{
 				break;
+			}
 		}
 		return alpha;
 	}
@@ -125,10 +130,12 @@ int AIPlayer::AlphaBeta(const Board& board, int depth, int alpha, int beta, bool
 	{
 		for(int i = 0; i < moves.Count(); ++i)
 		{
-			Board movedBoard(board);
-			movedBoard.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
+			MadeMove move = board.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(movedBoard, depth - 1, alpha, beta, true, oppositePlayer);
+			int res = AlphaBeta(board, depth - 1, alpha, beta, true, oppositePlayer);
+
+			board.UndoMove(move);
+
 			beta = Utils::Min(beta, res);
 			if(beta <= alpha)
 				break;

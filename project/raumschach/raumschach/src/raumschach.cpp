@@ -24,7 +24,8 @@ Raumschach::Raumschach()
 	currentPlayer(Config::WHITE),
 	gameEnded(false),
 	triedMove(false),
-	exitStatus(false)
+	exitStatus(false),
+	moveStack()
 {}
 
 Raumschach::~Raumschach()
@@ -155,7 +156,7 @@ void Raumschach::MouseClick(SysConfig::MouseButton button, int x, int y)
 			// if this is a valid move make it
 			if(board->ValidMove(selectedPiece, clickedPos, selectedPieceMoves))
 			{
-				board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves, true);
+				moveStack.Push(board->MovePiece(selectedPiece, clickedPos, selectedPieceMoves, true));
 
 				RegisterMove();
 			}
@@ -250,6 +251,25 @@ void Raumschach::RegisterMove()
 	triedMove = false;
 }
 
+void Raumschach::UndoMove()
+{
+	if(!moveStack.Empty())
+	{
+		MadeMove lastMove = moveStack.Pop();
+
+		board->UndoMove(lastMove);
+
+		tileState->SetChanged(lastMove.removedPiece.GetPositionVector());
+		tileState->SetChanged(lastMove.sourcePosition);
+
+		RegisterMove();
+	}
+	else
+	{
+		PostMessage("No more moves to undo!");
+	}
+}
+
 void Raumschach::MakePlayerMove()
 {
 	Piece movedPiece;
@@ -257,8 +277,9 @@ void Raumschach::MakePlayerMove()
 	// if the player generates moves, make validation check and register it on the board
 	if(!triedMove && players[currentPlayer]->GetMove(movedPiece, destination, board))
 	{
-		if(board->MovePiece(movedPiece, destination))
+		if(board->ValidMove(movedPiece, destination))
 		{
+			moveStack.Push(board->MovePiece(movedPiece, destination));
 			tileState->SetChanged(movedPiece.GetPositionVector());
 			tileState->SetChanged(destination);
 			RegisterMove();
@@ -309,6 +330,8 @@ void Raumschach::InitializeBoard(const DynamicArray<Piece>& pieces, unsigned sho
 	delete board;
 	board = nullptr;
 	board = new Board(pieces, movePool);
+
+	moveStack.Clear();
 
 	// now initialize flags
 	currentPlayer = (Config::PlayerColour) ((flags >> Config::BOARD_STATE_TURN_COLOUR_LSHIFT) & 0x0003);
@@ -367,6 +390,7 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 void Raumschach::InitButtons()
 {
 	graphicPanel->AddButton(new ResetButton("Reset game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_RESET)));
+	graphicPanel->AddButton(new UndoButton("Undo Move", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_UNDO)));
 	graphicPanel->AddButton(new BoardSaveButton("Save game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_SAVE)));
 	graphicPanel->AddButton(new BoardLoadButton("Load game", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_LOAD)));
 	graphicPanel->AddButton(new ExitButton("Exit", Colour(GraphicConfig::BUTTON_COLOUR), Rect(GraphicConfig::POSITION_BUTTON_EXIT)));

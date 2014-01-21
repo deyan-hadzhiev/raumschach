@@ -64,7 +64,7 @@ private:
 	* @param colour : The colour of the player that makes the move
 	* @retval : The best calculated heuristic
 	*/
-	int AlphaBeta(const Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const;
+	int AlphaBeta(Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const;
 
 	// The main heuristic of move function
 	int MoveHeuristic(const Move& move, const Board& board) const;

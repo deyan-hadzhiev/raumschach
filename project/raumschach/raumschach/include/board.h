@@ -7,17 +7,51 @@
 class Move
 {
 public:
-	Move();
-	Move(Piece p, ChessVector dest, const BitBoard& moves, int h = 0);
-	Move(const Move& copy);
-	Move& operator=(const Move& assign);
+	Move() : piece(), destination(0, 0, 0), heuristic(0), pieceMoves() {}
+	Move(Piece p, ChessVector dest, const BitBoard& moves, int h = 0)
+		:	piece(p), destination(dest), pieceMoves(moves), heuristic(h)
+	{}
+	Move(const Move& copy)
+		:	piece(copy.piece), destination(copy.destination), pieceMoves(copy.pieceMoves), heuristic(copy.heuristic)
+	{}
+	inline Move& operator=(const Move& assign)
+	{
+		if(this != &assign)
+		{
+			piece = assign.piece;
+			destination = assign.destination;
+			pieceMoves = assign.pieceMoves;
+			heuristic = assign.heuristic;
+		}
+		return *this;
+	}
 
-	friend bool operator<(const Move& rhs, const Move& lhs);
+	inline friend bool operator<(const Move& rhs, const Move& lhs)
+	{
+		return rhs.heuristic > lhs.heuristic;
+	}
 
 	Piece piece;
 	ChessVector destination;
 	int heuristic;
 	BitBoard pieceMoves;
+};
+
+class MadeMove
+{
+public:
+	MadeMove() : removedPiece(), sourcePosition() {}
+	MadeMove(Piece p, ChessVector src) : removedPiece(p), sourcePosition(src) {}
+	MadeMove(const MadeMove& copy) : removedPiece(copy.removedPiece), sourcePosition(copy.sourcePosition) {}
+	inline MadeMove& operator=(const MadeMove& assign)
+	{
+		removedPiece = assign.removedPiece;
+		sourcePosition = assign.sourcePosition;
+		return *this;
+	}
+
+	Piece removedPiece;
+	ChessVector sourcePosition;
 };
 
 class Board;
@@ -103,12 +137,12 @@ public:
 	* @param colour[in] : The colour of the player, which moves we're getting
 	* @param moveArray[out] : The destination array in which the moves will be pushed
 	*/
-	void GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray) const;
+	void GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray);
 
 	// check if this move is valid (short and slower version)
-	bool ValidMove(Piece piece, ChessVector pos) const;
+	bool ValidMove(Piece piece, ChessVector pos);
 	// check if this move is valid
-	bool ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const;
+	bool ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves);
 
 	// check if this move is possible, i.e. the piece can move there and no check is revealed with it
 	bool PossibleMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const;
@@ -117,23 +151,28 @@ public:
 	* @param piece : The piece to be moved
 	* @param pos : The destination position
 	* @param pretested : If the validation was already done before
-	* @retval : true if the move was done, false otherwise
+	* @retval : class representing a made move, so it can be saved and undone later
 	*/
-	bool MovePiece(Piece piece, ChessVector pos, bool pretested = false);
+	MadeMove MovePiece(Piece piece, ChessVector pos, bool pretested = false);
 	
 	/** Move a piece on the board
 	* @param piece : The piece to be moved
 	* @param pos : The destination position
 	* @param availableMoves : BitBoard containing all the available move positions
 	* @param pretested : If the validation was already done before
-	* @retval : true if the move was done, false otherwise
+	* @retval : class representing a made move, so it can be saved and undone later
 	*/
-	bool MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested = false);
+	MadeMove MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested = false);
+
+	/** Undoes a previously made move by adding the removed piece (if any) and returning the moved piece to it's original position
+	* @param lastMove : The last done move, that has to be undone
+	*/
+	void UndoMove(const MadeMove& move);
 
 	// a simplified version of KingCheckState(...) just for checking whether the king is under check
 	bool KingInCheck(Config::PlayerColour col) const;
 	// returns true if the king with the specified colour is under check
-	Config::KingState KingCheckState(Config::PlayerColour col) const;
+	Config::KingState KingCheckState(Config::PlayerColour col);
 	// returns true if the game is stalemate by pieces
 	bool PieceStalemate() const;
 	// returns true if the tile is threatened by any piece of the specified player colour

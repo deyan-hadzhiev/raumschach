@@ -280,6 +280,14 @@ namespace GraphicConfig
 		BUTTON_SIZE_HEIGHT, //height
 	};
 
+	static const int POSITION_BUTTON_UNDO[] =
+	{
+		BUTTON_SIZE_WIDTH + PANEL_PADDING * 2, //x
+		BUTTON_POSITION_HORIZONTAL, //y
+		BUTTON_SIZE_WIDTH, //width
+		BUTTON_SIZE_HEIGHT, //height
+	};
+
 	static const int POSITION_BUTTON_NEW_AI_BLACK[] =
 	{
 		PANEL_SIZE_WIDTH - PANEL_PADDING * 4 - BUTTON_SIZE_WIDTH * 3, // x

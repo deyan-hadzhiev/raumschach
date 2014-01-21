@@ -97,13 +97,13 @@ public:
 	}
 
 	// clear all elements ( not physically )
-	virtual void Clear()
+	void Clear()
 	{
 		count = 0;
 	}
 
 	// get the count of elements
-	virtual int Count() const { return count; }
+	int Count() const { return count; }
 
 	// element accessor
 	Type& operator[](int index)
@@ -128,7 +128,7 @@ public:
 	}
 
 	// if there isn't 'n' in size currently free, the array allocates them
-	virtual void Alloc(int n)
+	void Alloc(int n)
 	{
 		if(size - count < n)
 		{
@@ -239,6 +239,7 @@ public:
 			count--;
 			return arr[count];
 		}
+		return Type();
 	}
 
 	Type& Top()
@@ -260,6 +261,11 @@ public:
 	bool Empty() const
 	{
 		return count == 0;
+	}
+
+	void Clear()
+	{
+		count = 0;
 	}
 };
 

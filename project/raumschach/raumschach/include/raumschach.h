@@ -4,13 +4,11 @@
 #include "configuration.h"
 #include "piece.h"
 #include "charstring.h"
+#include "board.h"
 
 class Player;
 class Render;
-class Board;
 class GraphicBoard;
-class BitBoardMovePool;
-class BoardTileState;
 class RandomGenerator;
 class GraphicPanel;
 
@@ -35,6 +33,9 @@ public:
 
 	// Registers the made move (updates game state, board, current player, etc)
 	void RegisterMove();
+
+	// Undo the last made move
+	void UndoMove();
 
 	// Call the current player GetMove(...) function
 	void MakePlayerMove();
@@ -70,6 +71,8 @@ private:
 	BitBoardMovePool * movePool;
 	BoardTileState * tileState;
 	RandomGenerator * randGen;
+
+	DynamicStack<MadeMove> moveStack;
 
 	bool gameEnded; // this is true if a checkmate or stalemate occured
 	bool triedMove; // if the current player already tried a move (it is valid only for ai players)

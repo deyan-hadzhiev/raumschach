@@ -3,46 +3,6 @@
 #include "utils.h"
 #include "board.h"
 
-Move::Move()
-	:
-	piece(),
-	destination(0, 0, 0),
-	heuristic(0)
-{}
-
-Move::Move(Piece p, ChessVector dest, const BitBoard& moves, int h)
-	:
-	piece(p),
-	destination(dest),
-	pieceMoves(moves),
-	heuristic(h)
-{}
-
-Move::Move(const Move& copy)
-	:
-	piece(copy.piece),
-	destination(copy.destination),
-	pieceMoves(copy.pieceMoves),
-	heuristic(copy.heuristic)
-{}
-
-Move& Move::operator=(const Move& assign)
-{
-	if(this != &assign)
-	{
-		piece = assign.piece;
-		destination = assign.destination;
-		pieceMoves = assign.pieceMoves;
-		heuristic = assign.heuristic;
-	}
-	return *this;
-}
-
-bool operator<(const Move& rhs, const Move& lhs)
-{
-	return rhs.heuristic > lhs.heuristic;
-}
-
 BitBoardMovePool::BitBoardMovePool()
 {
 	for(int i = 0; i < COUNT_OF(pool); ++i)
@@ -295,7 +255,7 @@ void Board::GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& des
 	}
 }
 
-void Board::GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray) const
+void Board::GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray)
 {
 	// first get the list of pieces with this colour
 	DynamicArray<Piece> validPieces;
@@ -324,7 +284,7 @@ void Board::GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& mo
 	}
 }
 
-bool Board::ValidMove(Piece piece, ChessVector pos) const
+bool Board::ValidMove(Piece piece, ChessVector pos)
 {
 	bool result = false;
 	if(movePool)
@@ -335,31 +295,25 @@ bool Board::ValidMove(Piece piece, ChessVector pos) const
 	return result;
 }
 
-bool Board::ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves) const
+bool Board::ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMoves)
 {
 	bool result = false;
 	int pieceIndex = GetPieceIndex(piece.GetPositionVector());
 	if(pieceIndex >= 0 && pieces[pieceIndex] == piece && (availableMoves & BitBoard(pos)))
 	{
-		// the piece exists and can be moved to the destination, so now we create a copy board to simulate the move
-		Board movedBoard(*this);
-		int destinationIndex = movedBoard.GetPieceIndex(pos);
-		movedBoard.pieces[pieceIndex].SetPositionVector(pos);
-		if(destinationIndex >= 0)
-		{
-			movedBoard.pieces.RemoveItem(destinationIndex);
-		}
+		MadeMove move = MovePiece(piece, pos, availableMoves, true);
 
 		// finally we test the check state after the move
-		result = ! movedBoard.KingInCheck(piece.GetColour());
+		result = ! KingInCheck(piece.GetColour());
 
+		UndoMove(move);
 	}
 	return result;
 }
 
-bool Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
+MadeMove Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
 {
-	bool result = false;
+	MadeMove result;
 	if(movePool)
 	{
 		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())), this);
@@ -368,20 +322,31 @@ bool Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
 	return result;
 }
 
-bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested)
+MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMoves, bool pretested)
 {
-	bool result = true;
+	bool validMove = true;
 	//check if this piece is on the board
 	if(! pretested)
 	{
-		result = ValidMove(piece, pos, availableMoves);
+		validMove = ValidMove(piece, pos, availableMoves);
 	}
 
-	if(result)
+	MadeMove move;
+	if(validMove)
 	{
 		int pieceIndex = GetPieceIndex(piece.GetPositionVector());
 		// we must obtain the destination before actually moving the piece
 		int destinationIndex = GetPieceIndex(pos);
+
+		//copy to the MadeMove
+		Piece removedPiece(Config::NO_TYPE, Config::WHITE, pos);
+		if(destinationIndex >= 0)
+		{
+			removedPiece = pieces[destinationIndex];
+		}
+		move = MadeMove(removedPiece, piece.GetPositionVector());
+
+		// do the actual move
 
 		// set the new position of the piece
 		pieces[pieceIndex].SetPositionVector(pos);
@@ -403,7 +368,28 @@ bool Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availableMov
 		pieces.Sort();
 	}
 
-	return result;
+	return move;
+}
+
+void Board::UndoMove(const MadeMove& move)
+{
+	// first return the current piece occupying the tile to it's original place
+	int pieceIndex = GetPieceIndex(move.removedPiece.GetPositionVector());
+	if(pieceIndex >= 0)
+	{
+		pieces[pieceIndex].SetPositionVector(move.sourcePosition);
+	}
+
+	// now if this wasn't a quiet move, we must add back the removed piece
+	// NOTE: after the addition the pieces will be sorted, so we need to sort only if we don't add a piece
+	if(move.removedPiece.GetType() != Config::NO_TYPE)
+	{
+		AddPiece(move.removedPiece);
+	}
+	else
+	{
+		pieces.Sort();
+	}
 }
 
 bool Board::KingInCheck(Config::PlayerColour colour) const
@@ -426,7 +412,7 @@ bool Board::KingInCheck(Config::PlayerColour colour) const
 	return check;
 }
 
-Config::KingState Board::KingCheckState(Config::PlayerColour colour) const
+Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 {
 	using Config::KingState;
 	KingState kingState = KingState::NORMAL;

@@ -165,3 +165,13 @@ void ExitButton::Action(Raumschach * controller)
 {
 	controller->SetExitStatus(true);
 }
+
+UndoButton::UndoButton(const CharString& lbl, Colour col, Rect position)
+	:
+	Button(lbl, col, position)
+{}
+
+void UndoButton::Action(Raumschach * controller)
+{
+	controller->UndoMove();
+}

@@ -87,4 +87,12 @@ public:
 	void Action(Raumschach * controller);
 };
 
+class UndoButton : public Button
+{
+public:
+	UndoButton(const CharString& lbl, Colour col, Rect position);
+
+	void Action(Raumschach * controller);
+};
+
 #endif // __BUTTON_H__
