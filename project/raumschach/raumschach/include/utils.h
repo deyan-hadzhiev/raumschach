@@ -54,13 +54,13 @@ public:
 		}
 	}
 
-	~DynamicArray()
+	virtual ~DynamicArray()
 	{
 		delete[] arr;
 		arr = nullptr;
 	}
 
-	DynamicArray& operator=(const DynamicArray<Type>& assign)
+	DynamicArray<Type>& operator=(const DynamicArray<Type>& assign)
 	{
 		if(this != &assign)
 		{
@@ -78,7 +78,7 @@ public:
 	}
 
 	// adds an item to the end of the array ( rellocates current size * 2 if needed )
-	DynamicArray& operator+=(Type item)
+	DynamicArray<Type>& operator+=(Type item)
 	{
 		if(count >= size)
 		{
@@ -97,13 +97,13 @@ public:
 	}
 
 	// clear all elements ( not physically )
-	void Clear()
+	virtual void Clear()
 	{
 		count = 0;
 	}
 
 	// get the count of elements
-	int Count() const { return count; }
+	virtual int Count() const { return count; }
 
 	// element accessor
 	Type& operator[](int index)
@@ -128,7 +128,7 @@ public:
 	}
 
 	// if there isn't 'n' in size currently free, the array allocates them
-	void Alloc(int n)
+	virtual void Alloc(int n)
 	{
 		if(size - count < n)
 		{
@@ -136,7 +136,7 @@ public:
 		}
 	}
 
-private:
+protected:
 	void Realloc(int newSize)
 	{
 		if( newSize > size)
@@ -193,6 +193,74 @@ private:
 	Type* arr;
 	int size;
 	int count;
+};
+
+template<class Type>
+class DynamicStack : protected DynamicArray<Type>
+{
+public:
+	DynamicStack(int stackSize = 40) : DynamicArray<Type>(stackSize) {}
+
+	DynamicStack(const DynamicArray<Type>& copy) : DynamicArray<Type>(copy) {}
+
+	DynamicStack(const DynamicStack<Type>& copy) : DynamicArray<Type>(copy) {}
+
+	DynamicStack<Type>& operator=(const DynamicStack<Type>& assing)
+	{
+		if(this != &assign)
+		{
+			delete[] arr;
+			arr = nullptr;
+			size = assign.size;
+			count = assign.count;
+			arr = new Type[size];
+			for(int i = 0; i < count; ++i)
+			{
+				arr[i] = assign.arr[i];
+			}
+		}
+		return *this;
+	}
+
+	void Push(Type element)
+	{
+		if(count >= size)
+		{
+			Realloc(size * 2);
+		}
+		arr[count] = element;
+		count++;
+	};
+
+	Type Pop()
+	{
+		if(count)
+		{
+			count--;
+			return arr[count];
+		}
+	}
+
+	Type& Top()
+	{
+		if(count)
+		{
+			return arr[count - 1];
+		}
+	}
+
+	const Type& Top() const
+	{
+		if(count)
+		{
+			return arr[count - 1];
+		}
+	}
+
+	bool Empty() const
+	{
+		return count == 0;
+	}
 };
 
 class ChessVector
