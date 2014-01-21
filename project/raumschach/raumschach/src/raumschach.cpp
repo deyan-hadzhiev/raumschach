@@ -74,12 +74,18 @@ void Raumschach::Initialize()
 	graphicPanel->Initialize();
 	InitButtons();
 
+	randGen = new RandomGenerator((unsigned int) time(NULL));
+	if(! randGen)
+	{
+		Error("ERROR: Failed to initialize the random generator").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
+	}
+
 	movePool = new BitBoardMovePool();
 	if(! movePool)
 	{
 		Error("ERROR: Failed to initialize move pool").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
-	movePool->Initalize();
+	movePool->Initalize(randGen);
 
 	board = new Board( DynamicArray< Piece >(Const::INITIAL_PIECES, COUNT_OF(Const::INITIAL_PIECES)), movePool);
 	if(! board)
@@ -87,28 +93,24 @@ void Raumschach::Initialize()
 		Error("ERROR: Failed to initialize the main board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
+	unsigned long long hash = board->GetHash();
+
 	tileState = new BoardTileState();
 	if(! tileState)
 	{
 		Error("ERROR: Failed to initialize the tile state board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	randGen = new RandomGenerator((unsigned int) time(NULL));
-	if(! randGen)
-	{
-		Error("ERROR: Failed to initialize the random generator").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
-	}
-
-	players[Config::WHITE] = new HumanPlayer(Config::WHITE);
-	//players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::WHITE, movePool, randGen);
+	//players[Config::WHITE] = new HumanPlayer(Config::WHITE);
+	players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::WHITE, movePool, randGen);
 	playerNames[Config::WHITE] = "White Player";
 	if(!players[Config::WHITE])
 	{
 		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	players[Config::BLACK] = new HumanPlayer(Config::BLACK);
-	//players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::BLACK, movePool, randGen);
+	//players[Config::BLACK] = new HumanPlayer(Config::BLACK);
+	players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::BLACK, movePool, randGen);
 	playerNames[Config::BLACK] = "Black Player";
 	if(!players[Config::BLACK])
 	{

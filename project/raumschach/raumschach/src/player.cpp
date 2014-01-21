@@ -34,8 +34,16 @@ bool HumanPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) c
 /*********** class AIPlayer *************/
 
 AIPlayer::AIPlayer(int depth, Config::PlayerColour colour, BitBoardMovePool * movePool, RandomGenerator * gen)
-	:	Player(depth, colour), movePool(movePool), rgen(gen)
-{}
+	:	Player(depth, colour), movePool(movePool), rgen(gen), transitionTable(nullptr)
+{
+	transitionTable = new TransitionTable(depth);
+}
+
+AIPlayer::~AIPlayer()
+{
+	delete transitionTable;
+	transitionTable = nullptr;
+}
 
 Config::PlayerType AIPlayer::GetType() const
 {
@@ -83,6 +91,9 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 		}
 	}
 
+	// clear the transition table, it will not help us later
+	transitionTable->Clear();
+
 	return true;
 }
 
@@ -110,11 +121,20 @@ int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maxim
 
 	if(maximizing)
 	{
+		unsigned long long boardHash = 0ULL;
 		for(int i = 0; i < moves.Count(); ++i)
 		{
 			MadeMove move = board.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(board, depth - 1, alpha, beta, false, oppositePlayer);
+			boardHash = board.GetHash();
+
+			int res = 0;
+			if(!transitionTable->GetValue(depth - 1, boardHash, res))
+			{
+				res = AlphaBeta(board, depth - 1, alpha, beta, false, oppositePlayer);
+
+				transitionTable->AddValue(depth - 1, boardHash, res);
+			}
 
 			board.UndoMove(move);
 
@@ -128,11 +148,20 @@ int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maxim
 	}
 	else
 	{
+		unsigned long long boardHash = 0ULL;
 		for(int i = 0; i < moves.Count(); ++i)
 		{
 			MadeMove move = board.MovePiece(moves[i].piece, moves[i].destination, moves[i].pieceMoves, true);
 
-			int res = AlphaBeta(board, depth - 1, alpha, beta, true, oppositePlayer);
+			boardHash = board.GetHash();
+
+			int res = 0;
+			if(!transitionTable->GetValue(depth - 1, boardHash, res))
+			{
+				res = AlphaBeta(board, depth - 1, alpha, beta, true, oppositePlayer);
+
+				transitionTable->AddValue(depth - 1, boardHash, res);
+			}
 
 			board.UndoMove(move);
 

@@ -2,6 +2,7 @@
 #include "constants.h"
 #include "utils.h"
 #include "board.h"
+#include "random_generator.h"
 
 BitBoardMovePool::BitBoardMovePool()
 {
@@ -12,6 +13,10 @@ BitBoardMovePool::BitBoardMovePool()
 	for(int i = 0; i < COUNT_OF(pawnCapturePool); ++i)
 	{
 		pawnCapturePool[i] = new BitBoard[Config::BOARD_SIZE];
+	}
+	for(int i = 0; i < COUNT_OF(hashTable); ++i)
+	{
+		hashTable[i] = new unsigned long long[Config::BOARD_SIZE];
 	}
 }
 
@@ -27,9 +32,14 @@ BitBoardMovePool::~BitBoardMovePool()
 		delete[] pawnCapturePool[i];
 		pawnCapturePool[i] = nullptr;
 	}
+	for(int i = 0; i < COUNT_OF(hashTable); ++i)
+	{
+		delete[] hashTable[i];
+		hashTable[i] = nullptr;
+	}
 }
 
-void BitBoardMovePool::Initalize()
+void BitBoardMovePool::Initalize(RandomGenerator * randGen)
 {
 	const int boardSize = Config::BOARD_SIZE;
 	auto initPieceMoves = [boardSize] (BitBoard * dest, const coord srcVectors[][3], int srcVectorSize, bool scaleable)
@@ -71,6 +81,26 @@ void BitBoardMovePool::Initalize()
 	initPieceVectors( vectorPool[Config::UNICORN], Const::UNICORN_MOVE_VECTORS, VECTORS_COUNT(Const::UNICORN_MOVE_VECTORS));
 	initPieceVectors( vectorPool[Config::PAWN + Config::WHITE], Const::PAWN_MOVE_VECTORS_WHITE, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_WHITE));
 	initPieceVectors( vectorPool[Config::PAWN + Config::BLACK], Const::PAWN_MOVE_VECTORS_BLACK, VECTORS_COUNT(Const::PAWN_MOVE_VECTORS_BLACK));
+
+	InitZobristHash(randGen);
+}
+
+void BitBoardMovePool::InitZobristHash(RandomGenerator * randGen)
+{
+	unsigned long long randLow = 0UL;
+	unsigned long long randHigh = 0UL;
+	const unsigned UNSIGNED_MAX = ~0U;
+
+	for(int i = 0; i < COUNT_OF(hashTable); ++i)
+	{
+		for(int j = 0; j < Config::BOARD_SIZE; ++j)
+		{
+			randHigh = ((unsigned long long) randGen->GetRand(UNSIGNED_MAX)) << 32;
+			randLow = randGen->GetRand(UNSIGNED_MAX);
+			hashTable[i][j] = randHigh | randLow;
+		}
+	}
+
 }
 
 BitBoard BitBoardMovePool::CalculateBitBoard(ChessVector pos, const coord vectors[][3], int srcVectorSize, bool scaleable)
@@ -125,21 +155,6 @@ BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec
 		currPos += vec;
 	}
 	return result;
-}
-
-BitBoard BitBoardMovePool::GetPieceFullMoves(Piece p) const
-{
-	const Config::PieceType pieceType = p.GetType();
-	const coord piecePos = p.GetPositionCoord();
-	const Config::PlayerColour pieceColour = p.GetColour();
-	if(pieceType != Config::PAWN)
-	{
-		return pool[pieceType][piecePos];
-	}
-	else
-	{
-		return pool[pieceType + pieceColour][piecePos] | pawnCapturePool[pieceColour][piecePos];
-	}
 }
 
 BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board, bool includeFriendly) const

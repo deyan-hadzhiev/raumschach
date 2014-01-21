@@ -3,6 +3,7 @@
 
 #include "utils.h"
 #include "piece.h"
+#include "random_generator.h"
 
 class Move
 {
@@ -62,10 +63,34 @@ public:
 	BitBoardMovePool();
 	~BitBoardMovePool();
 
-	void Initalize();
+	void Initalize(RandomGenerator * randGen);
 	// used only for slight optimizations - the proper moves should still be calculated by the GetPieceMoves(...)
 	// but this is a lot faster and can be used just to check the visibility of piece and tile
-	BitBoard GetPieceFullMoves(Piece p) const;
+	inline BitBoard GetPieceFullMoves(Piece p) const
+	{
+		const Config::PieceType pieceType = p.GetType();
+		const coord piecePos = p.GetPositionCoord();
+		const Config::PlayerColour pieceColour = p.GetColour();
+		if(pieceType != Config::PAWN)
+		{
+			return pool[pieceType][piecePos];
+		}
+		else
+		{
+			return pool[pieceType + pieceColour][piecePos] | pawnCapturePool[pieceColour][piecePos];
+		}
+	}
+
+	// returns the piece hash value based on its position and type
+	inline unsigned long long GetPieceHash(Piece p) const
+	{
+		if(p.GetType() != Config::NO_TYPE)
+		{
+			return hashTable[p.GetType() + (p.GetColour() * Config::PIECE_TYPE_COUNT)][p.GetPositionCoord()];
+		}
+		return 0ULL;
+	}
+
 	/** calculates the posible moves for the speicified piece by checking for blocking friendly or enemy pieces
 	@param p: The piece which moves we are checking
 	@param friendlyPieces: The BitBoard of the friendly pieces, we could obtain it but this is easier
@@ -76,6 +101,9 @@ public:
 	BitBoard GetPieceMoves(Piece p, const BitBoard& friendlyPieces, const BitBoard& enemyPieces, const Board * board, bool includeFriendly = false) const;
 
 private:
+	// initializes the zobrist hash table
+	void InitZobristHash(RandomGenerator * randGen);
+
 	// disable copy and assign
 	BitBoardMovePool(const BitBoardMovePool&);
 	BitBoardMovePool& operator=(const BitBoardMovePool&);
@@ -85,6 +113,8 @@ private:
 
 	BitBoard * pool[Config::PIECE_TYPE_COUNT + 1];
 	BitBoard * pawnCapturePool[Config::PCOLOUR_COUNT];
+
+	unsigned long long * hashTable[Config::PIECE_TYPE_COUNT * 2];
 
 	DynamicArray<ChessVector> vectorPool[Config::PIECE_TYPE_COUNT + 1];
 };
@@ -200,6 +230,17 @@ public:
 	* NOTE: The value is positive if the White pieces have more material and negative if the black do.
 	*/
 	int GetMaterialBalance() const;
+
+	// Returns the hash of the current board
+	inline unsigned long long GetHash() const
+	{
+		unsigned long long hash = 0ULL;
+		for(int i = 0; i < pieces.Count(); ++i)
+		{
+			hash ^= movePool->GetPieceHash(pieces[i]);
+		}
+		return hash;
+	}
 
 	// Returns the worth of the tile
 	int GetTileWorth(ChessVector pos) const;

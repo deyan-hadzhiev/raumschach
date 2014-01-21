@@ -4,8 +4,64 @@
 #include "board.h"
 #include "piece.h"
 #include "utils.h"
+#include <unordered_map>
 
 class RandomGenerator;
+
+class TransitionTable
+{
+public:
+	TransitionTable(int depth) : table(nullptr), tableSize(depth)
+	{
+		table = new std::unordered_map<unsigned long long, int>[tableSize];
+	}
+
+	~TransitionTable()
+	{
+		delete[] table;
+		table = nullptr;
+	}
+
+	/** Searches for the hash in the transition table
+	* @param depth : the depth of the value to be searched
+	* @param hash : the hash to be searched for in the transition table
+	* @param value[out] : the value in the transition table if it was found, 0 otherwise
+	* @return : true if the hash is found, or false otherwise.
+	*/
+	bool GetValue(int depth, unsigned long long hash, int& value) const
+	{
+		auto got = table[depth].find(hash);
+		bool found = false;
+		if(got != table[depth].end())
+		{
+			value = got->second;
+			found = true;
+		}
+		return found;
+	}
+
+	// Adds a value with the specified hash at the specified depth
+	void AddValue(int depth, unsigned long long hash, int value)
+	{
+		table[depth][hash] = value;
+	}
+
+	// Clears the current table and allocates another
+	void Clear()
+	{
+		delete[] table;
+		table = nullptr;
+		table = new std::unordered_map<unsigned long long, int>[tableSize];
+	}
+
+private:
+	// disable copy and assignment
+	TransitionTable(const TransitionTable& copy);
+	TransitionTable& operator=(const TransitionTable& assign);
+
+	int tableSize;
+	std::unordered_map<unsigned long long, int> * table;
+};
 
 class Player
 {
@@ -49,6 +105,7 @@ class AIPlayer : public Player
 {
 public:
 	AIPlayer(int depth, Config::PlayerColour colour, BitBoardMovePool * movePool, RandomGenerator * rgen);
+	~AIPlayer();
 
 	Config::PlayerType GetType() const;
 
@@ -71,6 +128,8 @@ private:
 
 	RandomGenerator * rgen;
 	BitBoardMovePool * movePool;
+
+	TransitionTable * transitionTable;
 };
 
 #endif // __PLAYER_H__
