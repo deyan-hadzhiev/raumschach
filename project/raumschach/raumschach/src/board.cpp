@@ -111,7 +111,7 @@ BitBoard BitBoardMovePool::CalculateBitBoard(ChessVector pos, const coord vector
 		ChessVector dest = pos + ChessVector(vectors[i]);
 		if(Board::ValidVector(dest))
 		{
-			result.SetBits( Config::BITBOARD_BIT, dest.GetVectorCoord());
+			result.SetBit(true, dest.GetVectorCoord());
 		}
 
 		if( scaleable)
@@ -121,38 +121,10 @@ BitBoard BitBoardMovePool::CalculateBitBoard(ChessVector pos, const coord vector
 				dest = pos + (ChessVector(vectors[i]) * scale);
 				if(Board::ValidVector(dest))
 				{
-					result.SetBits( Config::BITBOARD_BIT, dest.GetVectorCoord());
+					result.SetBit(true, dest.GetVectorCoord());
 				}
 			}
 		}
-	}
-	return result;
-}
-
-BitBoard BitBoardMovePool::VectorToIntersection(ChessVector pos, ChessVector vec, const BitBoard& intersection, bool including)
-{
-	BitBoard result;
-	ChessVector currPos = pos + vec;
-	bool intersected = false;
-	BitBoard currPosBitBoard;
-	while(Board::ValidVector(currPos) && !intersected)
-	{
-		currPosBitBoard.Zero();
-		currPosBitBoard.SetBits(Config::BITBOARD_BIT, currPos.GetVectorCoord());
-		// if there is intersection, record it if we include intersection, otherwise just record this to the resulting vector
-		if(currPosBitBoard & intersection)
-		{
-			intersected = true;
-			if(including)
-			{
-				result |= currPosBitBoard;
-			}
-		}
-		else
-		{
-			result |= currPosBitBoard;
-		}
-		currPos += vec;
 	}
 	return result;
 }
@@ -164,16 +136,34 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 	Config::PieceType pType = p.GetType();
 	if(Const::PIECE_MOVE_SCALING[pType])
 	{
+		BitBoard unoccupiedTiles = ~ (friendlyPieces | enemyPieces);
 		const DynamicArray<ChessVector>& pieceVectorPool = vectorPool[pType];
-		BitBoard friendlyResult;
-		BitBoard enemyResult;
-		ChessVector piecePosition = p.GetPositionVector();
+		const ChessVector piecePos = p.GetPositionVector();
 		for(int i = 0; i < pieceVectorPool.Count(); ++i)
 		{
-			friendlyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], friendlyPieces, false || includeFriendly);
-			enemyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], enemyPieces, true);
+			ChessVector testedPos = piecePos + pieceVectorPool[i];
+			bool intersected = false;
+			while(Board::ValidVector(testedPos) && !intersected)
+			{
+				const coord testedCoord = testedPos.GetVectorCoord();
+				if(unoccupiedTiles.GetBit(testedCoord))
+				{
+					result.SetBit(true, testedCoord);
+				}
+				else // this has to be occupied by a friendly or enemy piece
+				{
+					intersected = true;
+					if(includeFriendly || enemyPieces.GetBit(testedCoord))
+					{
+						result.SetBit(true, testedCoord);
+					}
+				}
+
+				testedPos += pieceVectorPool[i];
+			}
+			//friendlyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], friendlyPieces, false || includeFriendly);
+			//enemyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], enemyPieces, true);
 		}
-		result = friendlyResult & enemyResult;
 	}
 	else if(pType == Config::KNIGHT)
 	{
@@ -193,7 +183,7 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 			{
 				if(!board->TileThreatened(kingMoves[i], oppositePlayer))
 				{
-					result.SetBits(Config::BITBOARD_BIT, kingMoves[i].GetVectorCoord());
+					result.SetBit(true, kingMoves[i].GetVectorCoord());
 				}
 			}
 		}
@@ -226,7 +216,7 @@ Board::Board(const DynamicArray< Piece >& pieceArray, BitBoardMovePool * pool)
 	pieces.Sort();
 	for(int i = 0; i < pieces.Count(); ++i)
 	{
-		piecesBitBoards[pieces[i].GetColour()].SetBits(Config::BITBOARD_BIT, pieces[i].GetPositionCoord());
+		piecesBitBoards[pieces[i].GetColour()].SetBit(true, pieces[i].GetPositionCoord());
 	}
 }
 
@@ -361,8 +351,8 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availabl
 		// do the actual move
 
 		// update piece bit boards
-		piecesBitBoards[piece.GetColour()].SetBits(0ULL, piece.GetPositionCoord());
-		piecesBitBoards[piece.GetColour()].SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+		piecesBitBoards[piece.GetColour()].SetBit(false, piece.GetPositionCoord());
+		piecesBitBoards[piece.GetColour()].SetBit(true, pos.GetVectorCoord());
 
 		// set the new position of the piece
 		pieces[pieceIndex].SetPositionVector(pos);
@@ -379,7 +369,7 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availabl
 		if(destinationIndex >= 0)
 		{
 			// update the bit boards
-			piecesBitBoards[pieces[destinationIndex].GetColour()].SetBits(0ULL, pos.GetVectorCoord());
+			piecesBitBoards[pieces[destinationIndex].GetColour()].SetBit(false, pos.GetVectorCoord());
 
 			pieces.RemoveItem(destinationIndex);
 		}
@@ -400,8 +390,8 @@ void Board::UndoMove(const MadeMove& move)
 		// update bit boards
 		Piece& p = pieces[pieceIndex];
 
-		piecesBitBoards[p.GetColour()].SetBits(0ULL, p.GetPositionCoord());
-		piecesBitBoards[p.GetColour()].SetBits(Config::BITBOARD_BIT, move.sourcePosition.GetVectorCoord());
+		piecesBitBoards[p.GetColour()].SetBit(false, p.GetPositionCoord());
+		piecesBitBoards[p.GetColour()].SetBit(true, move.sourcePosition.GetVectorCoord());
 
 		p.SetPositionVector(move.sourcePosition);
 	}
@@ -565,7 +555,7 @@ bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
 		BitBoard passiveBitBoard = GetPiecesBitBoard(Config::GetOppositePlayer(colour));
 
 		// we set the position bit of the checked tile, se we can get proper results from pool->GetPieceMoves(...) for pawns
-		passiveBitBoard.SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+		passiveBitBoard.SetBit(true, pos.GetVectorCoord());
 
 		BitBoard positionBitBoard(pos);
 		for(int i = 0; i < activePieces.Count() && !threatened; ++i)
@@ -666,7 +656,7 @@ Piece Board::GetPiece(ChessVector pos) const
 void Board::AddPiece(Piece piece)
 {
 	pieces += piece;
-	piecesBitBoards[piece.GetColour()].SetBits(Config::BITBOARD_BIT, piece.GetPositionCoord());
+	piecesBitBoards[piece.GetColour()].SetBit(true, piece.GetPositionCoord());
 	pieces.InsertionSort();
 }
 
@@ -675,7 +665,7 @@ void Board::RemovePiece(ChessVector pos)
 	int index = GetPieceIndex(pos);
 	if( index != -1)
 	{
-		piecesBitBoards[pieces[index].GetColour()].SetBits(0ULL, pieces[index].GetPositionCoord());
+		piecesBitBoards[pieces[index].GetColour()].SetBit(false, pieces[index].GetPositionCoord());
 		pieces.RemoveItem(index);
 		pieces.InsertionSort();
 	}
@@ -733,7 +723,7 @@ void BoardTileState::SetBoardTileState(Config::TileType state, const BitBoard& b
 {
 	for(coord pos = 0; pos < Config::BOARD_SIZE; ++pos)
 	{
-		if(bb.GetBits(pos, Config::BITBOARD_BIT) && tiles[pos] != state)
+		if(bb.GetBit(pos) && tiles[pos] != state)
 		{
 			tiles[pos] = state;
 			changed[pos] = true;

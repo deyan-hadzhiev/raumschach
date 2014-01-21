@@ -449,7 +449,7 @@ public:
 	{
 		bits[0] = 0ULL;
 		bits[1] = 0ULL;
-		SetBits(Config::BITBOARD_BIT, pos.GetVectorCoord());
+		SetBit(true, pos.GetVectorCoord());
 	}
 
 	inline BitBoard& operator=(const BitBoard& assign)
@@ -532,8 +532,16 @@ public:
 		bits[1] = 0ULL;
 	}
 
+	// fast function for getting a single bit
+	inline bool GetBit(coord offset) const
+	{
+		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
+		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;
+		return (bits[bitn] & (Config::BITBOARD_BIT >> bitOffset)) != 0;
+	}
+
 	// returns the bits with the given offset, and the specified mask ( 1 is the default mask)
-	inline unsigned long long GetBits( coord offset, unsigned long long mask = Config::BITBOARD_BIT) const
+	inline unsigned long long GetBits(coord offset, unsigned long long mask = Config::BITBOARD_BIT) const
 	{
 		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
 		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;
@@ -546,8 +554,17 @@ public:
 		return srcBits & mask;
 	}
 
+	inline void SetBit(bool flag, coord offset)
+	{
+		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
+		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;
+		unsigned long long destBit = (flag ? Config::BITBOARD_BIT >> bitOffset : 0ULL);
+		unsigned long long destMask = Config::BITBOARD_BIT >> bitOffset;
+		bits[bitn] = (bits[bitn] & ~ destMask) | (destBit & destMask);
+	}
+
 	// sets the bits with the given offset using only those from the specified mask
-	inline void SetBits( unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT)
+	inline void SetBits(unsigned long long srcBits, coord offset, unsigned long long mask = Config::BITBOARD_BIT)
 	{
 		unsigned char bitn = offset >> Utils::BITBOARD_PHYS_SIZE_OFFSET;
 		unsigned char bitOffset = offset & Utils::BITBOARD_PHYS_SIZE_MOD_MASK;

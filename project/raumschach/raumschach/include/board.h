@@ -109,7 +109,6 @@ private:
 	BitBoardMovePool& operator=(const BitBoardMovePool&);
 
 	static BitBoard CalculateBitBoard(ChessVector pos, const coord vectors[][3], int srcVectorSize, bool scaleable);
-	static BitBoard VectorToIntersection(ChessVector pos, ChessVector vec, const BitBoard& intersection, bool including);
 
 	BitBoard * pool[Config::PIECE_TYPE_COUNT + 1];
 	BitBoard * pawnCapturePool[Config::PCOLOUR_COUNT];
@@ -157,6 +156,11 @@ public:
 		return vec.x >= 0 && vec.x < Config::BOARD_SIDE
 			&& vec.y >= 0 && vec.y < Config::BOARD_SIDE
 			&& vec.z >= 0 && vec.z < Config::BOARD_SIDE;
+	}
+
+	inline static bool ValidCoord(coord pos)
+	{
+		return pos >= 0 && pos < ((coord) Config::BOARD_SIZE);
 	}
 
 	// returns a BitBoard with all the pieces of the speciefied colour's bits set to 1
