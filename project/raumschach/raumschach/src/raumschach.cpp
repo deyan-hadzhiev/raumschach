@@ -102,7 +102,7 @@ void Raumschach::Initialize()
 	}
 
 	//players[Config::WHITE] = new HumanPlayer(Config::WHITE);
-	players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::WHITE, movePool, randGen);
+	players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::WHITE, randGen);
 	playerNames[Config::WHITE] = "White Player";
 	if(!players[Config::WHITE])
 	{
@@ -110,7 +110,7 @@ void Raumschach::Initialize()
 	}
 
 	//players[Config::BLACK] = new HumanPlayer(Config::BLACK);
-	players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::BLACK, movePool, randGen);
+	players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::BLACK, randGen);
 	playerNames[Config::BLACK] = "Black Player";
 	if(!players[Config::BLACK])
 	{
@@ -363,6 +363,12 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 		previousDifficulty = players[colour]->GetDepth();
 	}
 
+	int previousIterations = -1;
+	if(players[colour]->GetType() == Config::PLAYER_AI)
+	{
+		previousIterations = players[colour]->GetIterations();
+	}
+
 	delete players[colour];
 	players[colour] = nullptr;
 
@@ -374,10 +380,11 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 		break;
 	case Config::PLAYER_AI:
 		{
-			int newDifficulty = (previousDifficulty != 0 ? previousDifficulty + 2 : Config::AI_PLAYER_SEARCH_DEPTH);
+			int newDifficulty = Config::AI_PLAYER_SEARCH_DEPTH;//(previousDifficulty != 0 ? previousDifficulty + 2 : Config::AI_PLAYER_SEARCH_DEPTH);
+			int newIterations = previousIterations + 1;
 			newDifficulty = Utils::Min(newDifficulty, Config::MAX_AI_PLAYER_SEARCH_DEPTH);
-			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty));
-			players[colour] = new AIPlayer(newDifficulty, colour, movePool, randGen);
+			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty) + " and iterations of: " + CharString(newIterations));
+			players[colour] = new AIPlayer(newDifficulty, newIterations, colour, randGen);
 			triedMove = false;
 			break;
 		}

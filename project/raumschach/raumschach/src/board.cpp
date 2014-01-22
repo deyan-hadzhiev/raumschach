@@ -580,13 +580,17 @@ Piece Board::GetKing(Config::PlayerColour col) const
 int Board::GetMaterialBalance() const
 {
 	int balance[Config::PCOLOUR_COUNT] = {0};
+	const BitBoard unoccupiedTiles = ~ (piecesBitBoards[Config::WHITE] | piecesBitBoards[Config::BLACK]);
+	BitBoard moveableTiles;
 	for(int i = 0; i < pieces[Config::WHITE].Count(); ++i)
 	{
-		balance[Config::WHITE] += pieces[Config::WHITE][i].GetWorth() + pieces[Config::WHITE][i].GetPositionWorth(pieces[Config::WHITE][i].GetPositionVector());
+		moveableTiles = movePool->GetPieceFullMoves(pieces[Config::WHITE][i]) & unoccupiedTiles;
+		balance[Config::WHITE] += pieces[Config::WHITE][i].GetWorth() + pieces[Config::WHITE][i].GetPositionWorth(pieces[Config::WHITE][i].GetPositionVector()) + moveableTiles.GetBitCount();
 	}
 	for(int i = 0; i < pieces[Config::BLACK].Count(); ++i)
 	{
-		balance[Config::BLACK] += pieces[Config::BLACK][i].GetWorth() + pieces[Config::BLACK][i].GetPositionWorth(pieces[Config::BLACK][i].GetPositionVector());
+		moveableTiles = movePool->GetPieceFullMoves(pieces[Config::WHITE][i]) & unoccupiedTiles;
+		balance[Config::BLACK] += pieces[Config::BLACK][i].GetWorth() + pieces[Config::BLACK][i].GetPositionWorth(pieces[Config::BLACK][i].GetPositionVector()) + moveableTiles.GetBitCount();
 	}
 	return balance[Config::WHITE] - balance[Config::BLACK];
 }

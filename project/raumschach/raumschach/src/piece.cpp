@@ -11,7 +11,7 @@ int Piece::GetWorth() const
 int Piece::GetPositionWorth(ChessVector pos) const
 {
 	coord worth = 0;
-	worth = pos.GetManhattanDistance(Const::BOARD_CENTER);
+	worth = pos.GetManhattanDistance(Const::BOARD_CENTER) * Const::PIECE_POSITION_WORTH_FACTOR[GetType()];
 	if(GetType() == Config::PAWN)
 	{
 		worth += (Const::PAWN_DISTANCE_TO_REPRODUCTION - Utils::Abs(pos.y - Const::PAWN_REPRODUCE_VECTORS[GetColour()].y) - Utils::Abs(pos.z - Const::PAWN_REPRODUCE_VECTORS[GetColour()].z)) * 2;

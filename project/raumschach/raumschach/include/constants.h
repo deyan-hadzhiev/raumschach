@@ -4,6 +4,7 @@
 #include "configuration.h"
 #include "utils.h"
 #include "piece.h"
+#include "charstring.h"
 
 namespace Const
 {
@@ -12,13 +13,43 @@ namespace Const
 	static const int PIECE_WORTH[Config::PIECE_TYPE_COUNT] =
 	{
 		0, // no type
-		1500, // king // the king's worth is just enormous so that the alpha-beta would preserve it
-		160, // queen
-		70, // rook
-		45, // bishop
-		45, // knight
-		35, // unicorn
-		15, // pawn
+		50000, // king // the king's worth is just enormous so that the alpha-beta would preserve it
+		500, // queen
+		270, // rook
+		220, // bishop
+		220, // knight
+		170, // unicorn
+		50, // pawn
+	};
+
+	static const int PIECE_POSITION_WORTH_FACTOR[Config::PIECE_TYPE_COUNT] =
+	{
+		1, // for no type it is just the position itself
+		0, // king doesn't gain by position
+		2, // queen gains, but should be carefull
+		2, // rooks are same as queen
+		3, // bishops gain a lot if in center
+		5, // knights gain in center
+		3, // unicorns gain as well
+		1, // pawns have different formula
+	};
+
+	static const CharString PIECE_NAMES[Config::PIECE_TYPE_COUNT] =
+	{
+		CharString("No Type"),
+		CharString("King"),
+		CharString("Queen"),
+		CharString("Rook"),
+		CharString("Bishop"),
+		CharString("Knight"),
+		CharString("Unicorn"),
+		CharString("Pawn"),
+	};
+
+	static const CharString COLOUR_NAMES[Config::PCOLOUR_COUNT] =
+	{
+		CharString("White"),
+		CharString("Black"),
 	};
 
 #define VECTORS_COUNT(x) sizeof((x)) / (sizeof(coord) * 3)
