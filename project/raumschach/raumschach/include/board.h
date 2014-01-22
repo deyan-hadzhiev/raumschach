@@ -180,7 +180,19 @@ public:
 	* @param colour[in] : The colour of the player which pieces will be pushed to the array
 	* @param dest[out] : The destination array in which the pieces will be pushed
 	*/
-	void GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const;
+	inline void GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const
+	{
+		dest.Clear();
+		if(colour != Config::BOTH_COLOURS)
+		{
+			dest = pieces[colour];
+		}
+		else
+		{
+			dest = pieces[Config::WHITE];
+			dest.Append(pieces[Config::BLACK]);
+		}
+	}
 
 	/** Retrieves all the possible moves a player can make on the given board
 	* @param colour[in] : The colour of the player, which moves we're getting
@@ -239,28 +251,73 @@ public:
 	inline unsigned long long GetHash() const
 	{
 		unsigned long long hash = 0ULL;
-		for(int i = 0; i < pieces.Count(); ++i)
+
+		for(int i = 0; i < pieces[Config::WHITE].Count(); ++i)
 		{
-			hash ^= movePool->GetPieceHash(pieces[i]);
+			hash ^= movePool->GetPieceHash(pieces[Config::WHITE][i]);
 		}
+
+		for(int i = 0; i < pieces[Config::BLACK].Count(); ++i)
+		{
+			hash ^= movePool->GetPieceHash(pieces[Config::BLACK][i]);
+		}
+
 		return hash;
 	}
 
 	// Returns the worth of the tile
 	int GetTileWorth(ChessVector pos) const;
 
-	Piece GetPiece(ChessVector pos) const;
+	Piece GetPiece(ChessVector pos) const
+	{
+		const Config::PlayerColour colour = GetPieceColour(pos);
+		if(colour == Config::BOTH_COLOURS)
+			return Piece();
+
+		const int index = GetPieceIndex(pos);
+
+		return (index != -1 ? pieces[colour][index] : Piece());
+	}
+
 	void AddPiece(Piece piece);
 	void RemovePiece(ChessVector pos);
 
 	void SetMovePool(BitBoardMovePool * pool);
 private:
+	inline Config::PlayerColour GetPieceColour(ChessVector pos) const
+	{
+		Config::PlayerColour colour = Config::BOTH_COLOURS;
+		if(piecesBitBoards[Config::WHITE].GetBit(pos.GetVectorCoord()))
+		{
+			colour = Config::WHITE;
+		}
+		else if(piecesBitBoards[Config::BLACK].GetBit(pos.GetVectorCoord()))
+		{
+			colour = Config::BLACK;
+		}
+		return colour;
+	}
+
 	// get the index of the piece at the specified position, or -1 if there is no piece there
-	int GetPieceIndex(ChessVector pos) const;
+	inline int GetPieceIndex(ChessVector pos) const
+	{
+		const coord destCoord = pos.GetVectorCoord();
+		int index = -1;
+		const Config::PlayerColour colour = GetPieceColour(pos);
+		if(colour != Config::BOTH_COLOURS)
+		{
+			for(int i = 0; i < pieces[colour].Count() && index == -1; ++i)
+			{
+				if(pieces[colour][i].GetPositionCoord() == destCoord)
+					index = i;
+			}
+		}
+		return index;
+	}
 
 	BitBoard piecesBitBoards[Config::PCOLOUR_COUNT];
 
-	DynamicArray< Piece > pieces;
+	DynamicArray< Piece > pieces[Config::PCOLOUR_COUNT];
 	BitBoardMovePool * movePool;
 };
 #endif // __BOARD_H__

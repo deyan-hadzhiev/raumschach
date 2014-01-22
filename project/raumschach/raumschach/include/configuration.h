@@ -74,7 +74,7 @@ namespace Config
 	static const int INT_NEGATIVE_INFINITY = 1 << (sizeof(int) * 8 - 1);
 	static const int INT_POSITIVE_INFINITY = ~ INT_NEGATIVE_INFINITY;
 
-	static const int GAME_MAX_MOVES = 2;
+	static const int GAME_MAX_MOVES = 6;
 
 	inline PlayerColour GetOppositePlayer(PlayerColour col)
 	{

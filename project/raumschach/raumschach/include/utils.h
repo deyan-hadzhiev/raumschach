@@ -81,6 +81,21 @@ public:
 		return *this;
 	}
 
+	DynamicArray<Type>& Append(const DynamicArray<Type>& rhs)
+	{
+		if(count + rhs.count < size)
+		{
+			Realloc(count + rhs.count + 1); // add just one more element
+		}
+
+		for(int i = 0; i < rhs.count; ++i)
+		{
+			arr[count] = rhs.arr[i];
+			++count;
+		}
+		return *this;
+	}
+
 	// adds an item to the end of the array ( rellocates current size * 2 if needed )
 	DynamicArray<Type>& operator+=(Type item)
 	{

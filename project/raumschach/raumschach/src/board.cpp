@@ -161,8 +161,6 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 
 				testedPos += pieceVectorPool[i];
 			}
-			//friendlyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], friendlyPieces, false || includeFriendly);
-			//enemyResult |= VectorToIntersection(piecePosition, pieceVectorPool[i], enemyPieces, true);
 		}
 	}
 	else if(pType == Config::KNIGHT)
@@ -197,32 +195,43 @@ BitBoard BitBoardMovePool::GetPieceMoves(Piece p, const BitBoard& friendlyPieces
 }
 
 Board::Board()
-	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(nullptr)
+	: movePool(nullptr)
 {
 	piecesBitBoards[Config::WHITE] = BitBoard(0ULL, 0ULL);
 	piecesBitBoards[Config::BLACK] = BitBoard(0ULL, 0ULL);
 }
 
 Board::Board(BitBoardMovePool * pool)
-	: pieces(Config::PLAYER_PIECES_COUNT * 2), movePool(pool)
+	: movePool(pool)
 {
 	piecesBitBoards[Config::WHITE] = BitBoard(0ULL, 0ULL);
 	piecesBitBoards[Config::BLACK] = BitBoard(0ULL, 0ULL);
 }
 
 Board::Board(const DynamicArray< Piece >& pieceArray, BitBoardMovePool * pool)
-	: pieces(pieceArray), movePool(pool)
+	: movePool(pool)
 {
-	pieces.Sort();
-	for(int i = 0; i < pieces.Count(); ++i)
+	for(int i = 0; i < pieceArray.Count(); ++i)
 	{
-		piecesBitBoards[pieces[i].GetColour()].SetBit(true, pieces[i].GetPositionCoord());
+		pieces[pieceArray[i].GetColour()] += pieceArray[i];
+	}
+
+	for(int i = 0; i < pieces[Config::WHITE].Count(); ++i)
+	{
+		piecesBitBoards[Config::WHITE].SetBit(true, pieces[Config::WHITE][i].GetPositionCoord());
+	}
+
+	for(int i = 0; i < pieces[Config::BLACK].Count(); ++i)
+	{
+		piecesBitBoards[Config::BLACK].SetBit(true, pieces[Config::BLACK][i].GetPositionCoord());
 	}
 }
 
 Board::Board(const Board& copy)
-	: pieces(copy.pieces), movePool(copy.movePool)
+	: movePool(copy.movePool)
 {
+	pieces[Config::WHITE] = copy.pieces[Config::WHITE];
+	pieces[Config::BLACK] = copy.pieces[Config::BLACK];
 	piecesBitBoards[Config::WHITE] = copy.piecesBitBoards[Config::WHITE];
 	piecesBitBoards[Config::BLACK] = copy.piecesBitBoards[Config::BLACK];
 }
@@ -231,7 +240,8 @@ Board& Board::operator=(const Board& assign)
 {
 	if(this != &assign)
 	{
-		pieces = assign.pieces;
+		pieces[Config::WHITE] = assign.pieces[Config::WHITE];
+		pieces[Config::BLACK] = assign.pieces[Config::BLACK];
 		movePool = assign.movePool;
 		piecesBitBoards[Config::WHITE] = assign.piecesBitBoards[Config::WHITE];
 		piecesBitBoards[Config::BLACK] = assign.piecesBitBoards[Config::BLACK];
@@ -239,29 +249,10 @@ Board& Board::operator=(const Board& assign)
 	return *this;
 }
 
-void Board::GetPiecesArray(Config::PlayerColour colour, DynamicArray<Piece>& dest) const
-{
-	dest.Clear();
-	if(colour == Config::BOTH_COLOURS)
-	{
-		dest = pieces;
-		return;
-	}
-
-	for(int i = 0; i < pieces.Count(); ++i)
-	{
-		if(pieces[i].GetColour() == colour)
-		{
-			dest += pieces[i];
-		}
-	}
-}
-
 void Board::GetPossibleMoves(Config::PlayerColour colour, DynamicArray<Move>& moveArray)
 {
 	// first get the list of pieces with this colour
-	DynamicArray<Piece> validPieces;
-	GetPiecesArray(colour, validPieces);
+	const DynamicArray<Piece>& validPieces = pieces[colour];
 
 	BitBoard friendlyPieces = GetPiecesBitBoard(colour);
 	BitBoard enemyPieces = GetPiecesBitBoard(Config::GetOppositePlayer(colour));
@@ -291,7 +282,7 @@ bool Board::ValidMove(Piece piece, ChessVector pos)
 	bool result = false;
 	if(movePool)
 	{
-		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())), this); 
+		BitBoard availableMoves = movePool->GetPieceMoves(piece, piecesBitBoards[piece.GetColour()], piecesBitBoards[Config::GetOppositePlayer(piece.GetColour())], this); 
 		result = ValidMove(piece, pos, availableMoves);
 	}
 	return result;
@@ -301,7 +292,7 @@ bool Board::ValidMove(Piece piece, ChessVector pos, const BitBoard& availableMov
 {
 	bool result = false;
 	int pieceIndex = GetPieceIndex(piece.GetPositionVector());
-	if(pieceIndex >= 0 && pieces[pieceIndex] == piece && (availableMoves & BitBoard(pos)))
+	if(pieceIndex >= 0 && pieces[piece.GetColour()][pieceIndex] == piece && (availableMoves & BitBoard(pos)))
 	{
 		MadeMove move = MovePiece(piece, pos, availableMoves, true);
 
@@ -318,7 +309,7 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, bool pretested)
 	MadeMove result;
 	if(movePool)
 	{
-		BitBoard availableMoves = movePool->GetPieceMoves(piece, GetPiecesBitBoard(piece.GetColour()), GetPiecesBitBoard(Config::GetOppositePlayer(piece.GetColour())), this);
+		BitBoard availableMoves = movePool->GetPieceMoves(piece, piecesBitBoards[piece.GetColour()], piecesBitBoards[Config::GetOppositePlayer(piece.GetColour())], this);
 		result = MovePiece(piece, pos, availableMoves, pretested);
 	}
 	return result;
@@ -336,45 +327,46 @@ MadeMove Board::MovePiece(Piece piece, ChessVector pos, const BitBoard& availabl
 	MadeMove move;
 	if(validMove)
 	{
+		const Config::PlayerColour pieceColour = piece.GetColour();
+		const Config::PlayerColour oppositeColour = Config::GetOppositePlayer(pieceColour);
+
 		int pieceIndex = GetPieceIndex(piece.GetPositionVector());
 		// we must obtain the destination before actually moving the piece
 		int destinationIndex = GetPieceIndex(pos);
 
 		//copy to the MadeMove
-		Piece removedPiece(Config::NO_TYPE, Config::WHITE, pos);
+		Piece removedPiece(Config::NO_TYPE, oppositeColour, pos);
 		if(destinationIndex >= 0)
 		{
-			removedPiece = pieces[destinationIndex];
+			removedPiece = pieces[oppositeColour][destinationIndex];
 		}
 		move = MadeMove(removedPiece, piece.GetPositionVector());
 
 		// do the actual move
 
 		// update piece bit boards
-		piecesBitBoards[piece.GetColour()].SetBit(false, piece.GetPositionCoord());
-		piecesBitBoards[piece.GetColour()].SetBit(true, pos.GetVectorCoord());
+		piecesBitBoards[pieceColour].SetBit(false, piece.GetPositionCoord());
+		piecesBitBoards[pieceColour].SetBit(true, pos.GetVectorCoord());
 
 		// set the new position of the piece
-		pieces[pieceIndex].SetPositionVector(pos);
+		pieces[piece.GetColour()][pieceIndex].SetPositionVector(pos);
 
-		Config::PlayerColour pieceColour = pieces[pieceIndex].GetColour();
+
 		// if the piece is a pawn and has reached the ending tile, it is considered to become a queen
-		if(pieces[pieceIndex].GetType() == Config::PAWN
+		if(pieces[pieceColour][pieceIndex].GetType() == Config::PAWN
 			&& Const::PAWN_REPRODUCE_VECTORS[pieceColour].y == pos.y
 			&& Const::PAWN_REPRODUCE_VECTORS[pieceColour].z == pos.z)
 		{
-			pieces[pieceIndex].SetType(Config::QUEEN);
+			pieces[pieceColour][pieceIndex].SetType(Config::QUEEN);
 		}
 
 		if(destinationIndex >= 0)
 		{
 			// update the bit boards
-			piecesBitBoards[pieces[destinationIndex].GetColour()].SetBit(false, pos.GetVectorCoord());
+			piecesBitBoards[oppositeColour].SetBit(false, pos.GetVectorCoord());
 
-			pieces.RemoveItem(destinationIndex);
+			pieces[oppositeColour].RemoveItem(destinationIndex);
 		}
-
-		pieces.InsertionSort();
 	}
 
 	return move;
@@ -384,27 +376,24 @@ void Board::UndoMove(const MadeMove& move)
 {
 	// first return the current piece occupying the tile to it's original place
 	int pieceIndex = GetPieceIndex(move.removedPiece.GetPositionVector());
+
+	const Config::PlayerColour oppositeColour = Config::GetOppositePlayer(move.removedPiece.GetColour());
 	// this shouldn't be -1, but just to be sure
 	if(pieceIndex >= 0)
 	{
 		// update bit boards
-		Piece& p = pieces[pieceIndex];
+		Piece& p = pieces[oppositeColour][pieceIndex];
 
-		piecesBitBoards[p.GetColour()].SetBit(false, p.GetPositionCoord());
-		piecesBitBoards[p.GetColour()].SetBit(true, move.sourcePosition.GetVectorCoord());
+		piecesBitBoards[oppositeColour].SetBit(false, p.GetPositionCoord());
+		piecesBitBoards[oppositeColour].SetBit(true, move.sourcePosition.GetVectorCoord());
 
 		p.SetPositionVector(move.sourcePosition);
 	}
 
 	// now if this wasn't a quiet move, we must add back the removed piece
-	// NOTE: after the addition the pieces will be sorted, so we need to sort only if we don't add a piece
 	if(move.removedPiece.GetType() != Config::NO_TYPE)
 	{
 		AddPiece(move.removedPiece);
-	}
-	else
-	{
-		pieces.InsertionSort();
 	}
 }
 
@@ -413,9 +402,9 @@ bool Board::KingInCheck(Config::PlayerColour colour) const
 	bool check = false;
 	int kingIndex = -1;
 	bool found = false;
-	for(int i = 0; i < pieces.Count() && !found; ++i)
+	for(int i = 0; i < pieces[colour].Count() && !found; ++i)
 	{
-		if(pieces[i].GetType() == Config::KING && pieces[i].GetColour() == colour)
+		if(pieces[colour][i].GetType() == Config::KING)
 		{
 			kingIndex = i;
 			found = true;
@@ -423,7 +412,7 @@ bool Board::KingInCheck(Config::PlayerColour colour) const
 	}
 	if(kingIndex >= 0)
 	{
-		check = TileThreatened(pieces[kingIndex].GetPositionVector(), Config::GetOppositePlayer(colour));
+		check = TileThreatened(pieces[colour][kingIndex].GetPositionVector(), Config::GetOppositePlayer(colour));
 	}
 	return check;
 }
@@ -434,9 +423,9 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 	KingState kingState = KingState::NORMAL;
 	int kingIndex = -1;
 	bool found = false;
-	for(int i = 0; i < pieces.Count() && !found; ++i)
+	for(int i = 0; i < pieces[colour].Count() && !found; ++i)
 	{
-		if(pieces[i].GetType() == Config::KING && pieces[i].GetColour() == colour)
+		if(pieces[colour][i].GetType() == Config::KING)
 		{
 			kingIndex = i;
 			found = true;
@@ -447,7 +436,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 
 	if(kingIndex >= 0)
 	{
-		king = pieces[kingIndex];
+		king = pieces[colour][kingIndex];
 		if(TileThreatened(king.GetPositionVector(), Config::GetOppositePlayer(king.GetColour())))
 		{
 			kingState = KingState::CHECK;
@@ -458,7 +447,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 		return Config::NO_KING;
 	}
 
-	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(colour);
+	const Config::PlayerColour oppositeColour = Config::GetOppositePlayer(colour);
 	BitBoard friendlyPiecesBitBoard = GetPiecesBitBoard(colour);
 	BitBoard enemyPiecesBitBoard = GetPiecesBitBoard(oppositeColour);
 
@@ -477,8 +466,7 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 	// this is slow operation, but will be rarely encountered
 	if(!hasMoveableTile)
 	{
-		DynamicArray<Piece> friendlyPieces;
-		GetPiecesArray(king.GetColour(), friendlyPieces);
+		const DynamicArray<Piece>& friendlyPieces = pieces[colour];
 		bool foundMove = false;
 		// check every piece for available moves, until at least one available move is found
 		for(int i = 0; i < friendlyPieces.Count() && !foundMove; ++i)
@@ -518,9 +506,13 @@ Config::KingState Board::KingCheckState(Config::PlayerColour colour)
 bool Board::PieceStalemate() const
 {
 	int pieceCount[Config::PCOLOUR_COUNT][Config::PLAYER_PIECES_COUNT] = {0};
-	for(int i = 0; i < pieces.Count(); ++i)
+	for(int i = 0; i < pieces[Config::WHITE].Count(); ++i)
 	{
-		pieceCount[pieces[i].GetColour()][pieces[i].GetType()]++;
+		pieceCount[Config::WHITE][pieces[Config::WHITE][i].GetType()]++;
+	}
+	for(int i = 0; i < pieces[Config::BLACK].Count(); ++i)
+	{
+		pieceCount[Config::BLACK][pieces[Config::BLACK][i].GetType()]++;
 	}
 
 	bool noStalemate = pieceCount[Config::WHITE][Config::QUEEN] > 0 || pieceCount[Config::BLACK][Config::QUEEN] > 0 // if there is at least one queen
@@ -536,19 +528,8 @@ bool Board::TileThreatened(ChessVector pos, Config::PlayerColour colour) const
 	bool threatened = false;
 	if( movePool)
 	{
-		DynamicArray< Piece > passivePieces;
-		DynamicArray< Piece > activePieces;
-		for(int i = 0; i < pieces.Count(); ++i)
-		{
-			if(pieces[i].GetColour() == colour)
-			{
-				activePieces += pieces[i];
-			}
-			else
-			{
-				passivePieces += pieces[i];
-			}
-		}
+		const DynamicArray< Piece >& passivePieces = pieces[Config::GetOppositePlayer(colour)];
+		const DynamicArray< Piece >& activePieces = pieces[colour];
 
 		BitBoard activeBitBoard = GetPiecesBitBoard(colour);
 
@@ -585,11 +566,11 @@ Piece Board::GetKing(Config::PlayerColour col) const
 {
 	if(col == Config::WHITE || col == Config::BLACK)
 	{
-		for(int i = 0; i < pieces.Count(); ++i)
+		for(int i = 0; i < pieces[col].Count(); ++i)
 		{
-			if( pieces[i].GetColour() == col && pieces[i].GetType() == Config::KING)
+			if(pieces[col][i].GetType() == Config::KING)
 			{
-				return pieces[i];
+				return pieces[col][i];
 			}
 		}
 	}
@@ -599,9 +580,13 @@ Piece Board::GetKing(Config::PlayerColour col) const
 int Board::GetMaterialBalance() const
 {
 	int balance[Config::PCOLOUR_COUNT] = {0};
-	for(int i = 0; i < pieces.Count(); ++i)
+	for(int i = 0; i < pieces[Config::WHITE].Count(); ++i)
 	{
-		balance[pieces[i].GetColour()] += pieces[i].GetWorth() + pieces[i].GetPositionWorth(pieces[i].GetPositionVector());
+		balance[Config::WHITE] += pieces[Config::WHITE][i].GetWorth() + pieces[Config::WHITE][i].GetPositionWorth(pieces[Config::WHITE][i].GetPositionVector());
+	}
+	for(int i = 0; i < pieces[Config::BLACK].Count(); ++i)
+	{
+		balance[Config::BLACK] += pieces[Config::BLACK][i].GetWorth() + pieces[Config::BLACK][i].GetPositionWorth(pieces[Config::BLACK][i].GetPositionVector());
 	}
 	return balance[Config::WHITE] - balance[Config::BLACK];
 }
@@ -621,53 +606,20 @@ int Board::GetTileWorth(ChessVector pos) const
 	return tileWorth;
 }
 
-int Board::GetPieceIndex(ChessVector pos) const
-{
-	const coord destCoord = pos.GetVectorCoord();
-	int index = -1;
-	int left = 0;
-	int right = pieces.Count() - 1;
-	int half;
-	while(left <= right && index == -1)
-	{
-		half = (left + right) >> 1;
-		if(pieces[half].GetPositionCoord() == destCoord)
-		{
-			index = half;
-		}
-		else if(pieces[half].GetPositionCoord() < destCoord)
-		{
-			left = half + 1;
-		}
-		else
-		{
-			right = half - 1;
-		}
-	}
-	return index;
-}
-
-Piece Board::GetPiece(ChessVector pos) const
-{
-	int index = GetPieceIndex(pos);
-	return (index != -1 ? pieces[index] : Piece());
-}
-
 void Board::AddPiece(Piece piece)
 {
-	pieces += piece;
+	pieces[piece.GetColour()] += piece;
 	piecesBitBoards[piece.GetColour()].SetBit(true, piece.GetPositionCoord());
-	pieces.InsertionSort();
 }
 
 void Board::RemovePiece(ChessVector pos)
 {
-	int index = GetPieceIndex(pos);
-	if( index != -1)
+	const int index = GetPieceIndex(pos);
+	const Config::PlayerColour colour = GetPieceColour(pos);
+	if( index != -1 && colour != Config::BOTH_COLOURS)
 	{
-		piecesBitBoards[pieces[index].GetColour()].SetBit(false, pieces[index].GetPositionCoord());
-		pieces.RemoveItem(index);
-		pieces.InsertionSort();
+		piecesBitBoards[colour].SetBit(false, pieces[colour][index].GetPositionCoord());
+		pieces[colour].RemoveItem(index);
 	}
 }
 
