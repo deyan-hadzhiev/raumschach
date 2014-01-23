@@ -75,6 +75,13 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	possibleMoves.Sort();
 
+	// This is needed because of the oddity reversal in the alpha-beta search
+	int index = ((searchDepth & 1) != 0 ? 0 : possibleMoves.Count() - 1);
+
+	Move finalMove = possibleMoves[index];
+	
+	//finalMove = GetRandomBestMove(possibleMoves);
+
 	printf("Best ai moves heuristics for %s player:\n", Const::COLOUR_NAMES[playerColour].GetPtr());
 	for(int i = 0; i < possibleMoves.Count(); ++i)
 	{
@@ -82,10 +89,8 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 	}
 	printf("\n");
 
-	int selectedMove = (searchDepth & 1 ? 0 : possibleMoves.Count() - 1);
-
-	piece = possibleMoves[selectedMove].piece;
-	pos = possibleMoves[selectedMove].destination;
+	piece = finalMove.piece;
+	pos = finalMove.destination;
 
 	return true;
 }
@@ -265,6 +270,48 @@ int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maxim
 		}
 		return beta;
 	}
+}
+
+Move AIPlayer::GetRandomBestMove(DynamicArray<Move>& moves) const
+{
+	moves.Sort();
+	
+	DynamicArray<Move> bestCandidates;
+
+	// this is necessary because of the oddity changes from the AlphaBeta algorithm
+	const int startingIndex = (searchDepth & 1 ? 0 : moves.Count() - 1);
+	int incrementation = (searchDepth & 1 ? 1 : -1);
+
+	bool inThreshold = true;
+	
+	// add the first element, because it is always the best choice by alpha beta
+	bestCandidates += moves[startingIndex];
+
+	int index = startingIndex + incrementation;
+
+	while(index >= 0 && index < moves.Count() && inThreshold)
+	{
+		if(Utils::Abs(moves[startingIndex].heuristic - moves[index].heuristic) < Const::BEST_MOVE_THRESHOLD)
+		{
+			bestCandidates += moves[index];
+		}
+		else
+		{
+			inThreshold = false;
+		}
+
+		index += incrementation;
+	}
+
+	printf("Best ai moves heuristics for %s player:\n", Const::COLOUR_NAMES[playerColour].GetPtr());
+	for(int i = 0; i < bestCandidates.Count(); ++i)
+	{
+		printf("%s to (%d, %d, %d), h = %d\n", Const::PIECE_NAMES[bestCandidates[i].piece.GetType()].GetPtr(), bestCandidates[i].destination.x, bestCandidates[i].destination.y, bestCandidates[i].destination.z, bestCandidates[i].heuristic);
+	}
+	printf("\n");
+
+	int random = rgen->GetRand(bestCandidates.Count());
+	return bestCandidates[random];
 }
 
 int AIPlayer::MoveHeuristic(const Move& move, const Board& board) const

@@ -10,16 +10,18 @@ namespace Const
 {
 	static const ChessVector INVALID_CHESS_VECTOR = ChessVector(-1, -1, -1);
 
+	static const int BEST_MOVE_THRESHOLD = 30;
+
 	static const int PIECE_WORTH[Config::PIECE_TYPE_COUNT] =
 	{
 		0, // no type
 		50000, // king // the king's worth is just enormous so that the alpha-beta would preserve it
-		500, // queen
-		270, // rook
-		220, // bishop
-		220, // knight
-		170, // unicorn
-		50, // pawn
+		150, // queen
+		70, // rook
+		55, // bishop
+		55, // knight
+		40, // unicorn
+		15, // pawn
 	};
 
 	static const int PIECE_POSITION_WORTH_FACTOR[Config::PIECE_TYPE_COUNT] =

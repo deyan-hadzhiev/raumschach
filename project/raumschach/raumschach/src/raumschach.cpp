@@ -101,16 +101,16 @@ void Raumschach::Initialize()
 		Error("ERROR: Failed to initialize the tile state board").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	//players[Config::WHITE] = new HumanPlayer(Config::WHITE);
-	players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::WHITE, randGen);
+	players[Config::WHITE] = new HumanPlayer(Config::WHITE);
+	//players[Config::WHITE] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::WHITE, randGen);
 	playerNames[Config::WHITE] = "White Player";
 	if(!players[Config::WHITE])
 	{
 		Error("ERROR: No white player specified").Post().Exit(SysConfig::EXIT_CHESS_INIT_ERROR);
 	}
 
-	//players[Config::BLACK] = new HumanPlayer(Config::BLACK);
-	players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::BLACK, randGen);
+	players[Config::BLACK] = new HumanPlayer(Config::BLACK);
+	//players[Config::BLACK] = new AIPlayer(Config::AI_PLAYER_SEARCH_DEPTH, Config::INITIAL_ITERATIVE_DEEPENING, Config::BLACK, randGen);
 	playerNames[Config::BLACK] = "Black Player";
 	if(!players[Config::BLACK])
 	{

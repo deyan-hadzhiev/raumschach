@@ -145,6 +145,11 @@ private:
 	*/
 	int AlphaBeta(Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const;
 
+	/** makes some changes to the moves array taken from the AlphaBetaRoot or IteratingAlphaBeta and makes some
+	* adjustments so that it would pick easier
+	*/
+	Move GetRandomBestMove(DynamicArray<Move>& moves) const;
+
 	// The main heuristic of move function
 	int MoveHeuristic(const Move& move, const Board& board) const;
 
