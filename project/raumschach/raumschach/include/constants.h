@@ -16,11 +16,11 @@ namespace Const
 	{
 		0, // no type
 		50000, // king // the king's worth is just enormous so that the alpha-beta would preserve it
-		150, // queen
-		70, // rook
-		55, // bishop
-		55, // knight
-		40, // unicorn
+		160, // queen
+		80, // rook
+		60, // bishop
+		60, // knight
+		50, // unicorn
 		15, // pawn
 	};
 

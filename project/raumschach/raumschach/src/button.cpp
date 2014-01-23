@@ -105,7 +105,7 @@ void BoardSaveButton::Action(Raumschach * controller)
 		fwrite(&flags, sizeof(flags), 1, output);
 
 		const Board * board = controller->GetBoard();
-		DynamicArray<Piece> pieces;
+		DynamicArray<Piece> pieces(Config::PLAYER_PIECES_COUNT * 2);
 		board->GetPiecesArray(Config::BOTH_COLOURS, pieces);
 
 		for(int i = 0; i < pieces.Count(); ++i)

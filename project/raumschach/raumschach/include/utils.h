@@ -83,7 +83,7 @@ public:
 
 	DynamicArray<Type>& Append(const DynamicArray<Type>& rhs)
 	{
-		if(count + rhs.count < size)
+		if(count + rhs.count > size)
 		{
 			Realloc(count + rhs.count + 1); // add just one more element
 		}
