@@ -3,6 +3,7 @@
 #include "player.h"
 #include "board.h"
 #include <cmath>
+#include <ctime>
 
 Player::Player(int depth, int iterations, Config::PlayerColour colour)
 	:	searchDepth(depth), playerColour(colour), iterations(iterations)
@@ -63,6 +64,8 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	DynamicArray<Move> possibleMoves(Const::MAX_PIECES_MOVES);
 
+	long long start = clock();
+
 	// if we have iterative deepening
 	if(iterations)
 	{
@@ -80,6 +83,18 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	Move finalMove = possibleMoves[index];
 	
+	long long end = clock();
+
+	float calculation = (float)(end - start)/ CLOCKS_PER_SEC;
+
+	int ms = (calculation - floor( calculation)) * 1000;
+	int second = floor( calculation);
+	int sec = second % 60;
+	int min = (second / 60) % 60;
+	int hrs = second / 3600;
+
+	printf("Calculation time : %dh %dm %d.%ds\n", hrs, min, sec, ms);
+
 	//finalMove = GetRandomBestMove(possibleMoves);
 
 	printf("Best ai moves heuristics for %s player:\n", Const::COLOUR_NAMES[playerColour].GetPtr());
