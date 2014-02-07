@@ -134,6 +134,8 @@ private:
 	*/
 	void AlphaBetaRoot(const Board& board, Config::PlayerColour colour, DynamicArray<Move>& generatedMoves) const;
 
+	Move AlphaBetaSingle(const Board& board, int depth, Config::PlayerColour colour) const;
+
 	/** The main algorithm for decision making of moves
 	* @param board : The current board for which we search for best move
 	* @param depth : The current search depth

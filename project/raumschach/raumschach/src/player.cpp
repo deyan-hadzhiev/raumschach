@@ -66,22 +66,23 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	long long start = clock();
 
-	// if we have iterative deepening
-	if(iterations)
-	{
-		IterateAlphaBetaRoot(*board, iterations, possibleMoves);
-	}
-	else
-	{
-		AlphaBetaRoot(*board, playerColour, possibleMoves);
-	}
+	/* Doesnt work at the moment ****/
+	//// if we have iterative deepening
+	//if(iterations)
+	//{
+	//	IterateAlphaBetaRoot(*board, iterations, possibleMoves);
+	//}
+	//else
+	//{
+	//	AlphaBetaRoot(*board, playerColour, possibleMoves);
+	//}
 
-	possibleMoves.Sort();
+	//possibleMoves.Sort();
 
 	// This is needed because of the oddity reversal in the alpha-beta search
-	int index = ((searchDepth & 1) != 0 ? 0 : possibleMoves.Count() - 1);
+	//int index = ((searchDepth & 1) != 0 ? 0 : possibleMoves.Count() - 1);
 
-	Move finalMove = possibleMoves[index];
+	Move finalMove = AlphaBetaSingle(*board, searchDepth, playerColour); //possibleMoves[index];
 	
 	long long end = clock();
 
@@ -97,11 +98,12 @@ bool AIPlayer::GetMove(Piece& piece, ChessVector& pos, const Board * board) cons
 
 	//finalMove = GetRandomBestMove(possibleMoves);
 
-	printf("Best ai moves heuristics for %s player:\n", Const::COLOUR_NAMES[playerColour].GetPtr());
-	for(int i = 0; i < possibleMoves.Count(); ++i)
+	printf("Best ai move heuristics for %s player:\n", Const::COLOUR_NAMES[playerColour].GetPtr());
+	printf("%s to (%d, %d, %d), h = %d\n", Const::PIECE_NAMES[finalMove.piece.GetType()].GetPtr(), finalMove.destination.x, finalMove.destination.y, finalMove.destination.z, finalMove.heuristic);
+	/*for(int i = 0; i < possibleMoves.Count(); ++i)
 	{
 		printf("%s to (%d, %d, %d), h = %d\n", Const::PIECE_NAMES[possibleMoves[i].piece.GetType()].GetPtr(), possibleMoves[i].destination.x, possibleMoves[i].destination.y, possibleMoves[i].destination.z, possibleMoves[i].heuristic);
-	}
+	}*/
 	printf("\n");
 
 	piece = finalMove.piece;
@@ -118,7 +120,7 @@ void AIPlayer::IterateAlphaBetaRoot(const Board& board, int iteration, DynamicAr
 	// now the recursive calls
 	if(iteration > 0)
 	{
-		Board copyBoard(board);
+		Board boardCopy(board);
 
 		// now sort them to have the best on top
 		generatedMoves.Sort();
@@ -128,56 +130,80 @@ void AIPlayer::IterateAlphaBetaRoot(const Board& board, int iteration, DynamicAr
 
 		samples = Utils::Min(samples, generatedMoves.Count());
 
+		// now make the moves and calculate similary to the AlphaBetaRoot
+		Config::PlayerColour oppositeColour = Config::GetOppositePlayer(playerColour);
+
+		BitBoard playerPieces = board.GetPiecesBitBoard(playerColour);
+		BitBoard enemyPieces = board.GetPiecesBitBoard(oppositeColour);
+
 		for(int i = 0; i < samples; ++i)
 		{
-			DynamicArray<Move> enemyMoves(Const::MAX_PIECES_MOVES);
-			
-			// make the move on the board
-			MadeMove friendlyMove = copyBoard.MovePiece(generatedMoves[i].piece, generatedMoves[i].destination, generatedMoves[i].pieceMoves, true);
+			// make the move and start an Alpha Beta from it
+			MadeMove move = boardCopy.MovePiece(generatedMoves[i].piece, generatedMoves[i].destination, generatedMoves[i].pieceMoves, true);
 
-			// now get the array of moves for the enemy
-			AlphaBetaRoot(copyBoard, Config::GetOppositePlayer(playerColour), enemyMoves);
+			int alphaBetaResult = AlphaBeta(boardCopy, searchDepth + iteration * 2, Config::INT_NEGATIVE_INFINITY, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
 
-			// sort the moves
-			enemyMoves.Sort();
+			boardCopy.UndoMove(move);
 
-			// take a sample as before
-			int enemySamples = (int) ceilf(sqrtf(enemyMoves.Count()));
-			enemySamples = Utils::Min(enemySamples, enemyMoves.Count());
+			generatedMoves[i].heuristic = alphaBetaResult;
+		}
 
-			for(int j = 0; j < enemySamples; ++j)
-			{
-				// Make a move for each of the best enemy moves and then assemble the result
-				MadeMove enemyMove = copyBoard.MovePiece(enemyMoves[j].piece, enemyMoves[j].destination, enemyMoves[j].pieceMoves, true);
+		// clear the transition table, it will not help us later
+		transitionTable->Clear();
+	}
+}
 
-				DynamicArray<Move> endMoves(Const::MAX_PIECES_MOVES);
+Move AIPlayer::AlphaBetaSingle(const Board& board, int depth, Config::PlayerColour colour) const
+{
+	Board boardCopy(board);
 
-				// make the recursive call to the iterative function use the results
-				IterateAlphaBetaRoot(copyBoard, iteration - 1, endMoves);
+	DynamicArray<Move> availableMoves(Const::MAX_PIECES_MOVES);
 
-				// now copy the best evaluation to the current top move heuristics
-				int maxEvaluation = generatedMoves[i].heuristic;
-				for(int k = 0; k < endMoves.Count(); ++k)
-				{
-					maxEvaluation = Utils::Max(maxEvaluation, endMoves[k].heuristic);
-				}
+	// first fill with some expected heuristic
+	boardCopy.GetPossibleMoves(colour, availableMoves);
+	for(int i = 0; i < availableMoves.Count(); ++i)
+	{
+		availableMoves[i].heuristic = MoveHeuristic(availableMoves[i], board);
+	}
 
-				generatedMoves[i].heuristic = maxEvaluation;
+	// sort the moves so that the most valuable are first
+	availableMoves.Sort();
 
-				// undo the move
-				copyBoard.UndoMove(enemyMove);
-			}
+	Config::PlayerColour oppositeColour = Config::GetOppositePlayer(colour);
 
-			// finally undo the move
-			copyBoard.UndoMove(friendlyMove);
+	BitBoard playerPieces = board.GetPiecesBitBoard(colour);
+	BitBoard enemyPieces = board.GetPiecesBitBoard(oppositeColour);
+
+	int alpha = Config::INT_NEGATIVE_INFINITY;
+	Move bestMove = availableMoves.Count() > 0 ? availableMoves[0] : Move();
+
+	printf("Moves Count: %d\n", availableMoves.Count());
+
+	for(int i = 0; i < availableMoves.Count(); ++i)
+	{
+		// make the move and start an Alpha Beta from it
+		MadeMove move = boardCopy.MovePiece(availableMoves[i].piece, availableMoves[i].destination, availableMoves[i].pieceMoves, true);
+
+		int alphaBetaResult = AlphaBeta(boardCopy, depth - 1, alpha, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
+
+		boardCopy.UndoMove(move);
+
+		if(alphaBetaResult > alpha)
+		{
+			alpha = alphaBetaResult;
+			bestMove = availableMoves[i];
+			bestMove.heuristic = alpha;
 		}
 	}
+
+	// clear the transition table, it will not help us later
+	//transitionTable->Clear();
+
+	return bestMove;
 }
 
 void AIPlayer::AlphaBetaRoot(const Board& board, Config::PlayerColour colour, DynamicArray<Move>& generatedMoves) const
 {
-	int alpha = Config::INT_NEGATIVE_INFINITY;
-
 	Board boardCopy(board);
 
 	// first fill with some expected heuristic
@@ -200,7 +226,7 @@ void AIPlayer::AlphaBetaRoot(const Board& board, Config::PlayerColour colour, Dy
 		// make the move and start an Alpha Beta from it
 		MadeMove move = boardCopy.MovePiece(generatedMoves[i].piece, generatedMoves[i].destination, generatedMoves[i].pieceMoves, true);
 
-		int alphaBetaResult = AlphaBeta(boardCopy, searchDepth, alpha, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
+		int alphaBetaResult = AlphaBeta(boardCopy, searchDepth, Config::INT_NEGATIVE_INFINITY, Config::INT_POSITIVE_INFINITY, false, oppositeColour);
 
 		boardCopy.UndoMove(move);
 
@@ -208,7 +234,7 @@ void AIPlayer::AlphaBetaRoot(const Board& board, Config::PlayerColour colour, Dy
 	}
 
 	// clear the transition table, it will not help us later
-	transitionTable->Clear();
+	//transitionTable->Clear();
 }
 
 int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maximizing, Config::PlayerColour colour) const
@@ -243,12 +269,12 @@ int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maxim
 			boardHash = board.GetHash();
 
 			int res = 0;
-			if(!transitionTable->GetValue(depth - 1, boardHash, res))
-			{
+			/*if(!transitionTable->GetValue(depth - 1, boardHash, res))
+			{*/
 				res = AlphaBeta(board, depth - 1, alpha, beta, false, oppositePlayer);
 
-				transitionTable->AddValue(depth - 1, boardHash, res);
-			}
+				/*transitionTable->AddValue(depth - 1, boardHash, res);
+			}*/
 
 			board.UndoMove(move);
 
@@ -270,12 +296,12 @@ int AIPlayer::AlphaBeta(Board& board, int depth, int alpha, int beta, bool maxim
 			boardHash = board.GetHash();
 
 			int res = 0;
-			if(!transitionTable->GetValue(depth - 1, boardHash, res))
-			{
+			/*if(!transitionTable->GetValue(depth - 1, boardHash, res))
+			{*/
 				res = AlphaBeta(board, depth - 1, alpha, beta, true, oppositePlayer);
 
-				transitionTable->AddValue(depth - 1, boardHash, res);
-			}
+			/*	transitionTable->AddValue(depth - 1, boardHash, res);
+			}*/
 
 			board.UndoMove(move);
 

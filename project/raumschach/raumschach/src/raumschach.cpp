@@ -381,9 +381,9 @@ void Raumschach::InitializeNewPlayer(Config::PlayerType type, Config::PlayerColo
 	case Config::PLAYER_AI:
 		{
 			int newDifficulty = Config::AI_PLAYER_SEARCH_DEPTH;//(previousDifficulty != 0 ? previousDifficulty + 2 : Config::AI_PLAYER_SEARCH_DEPTH);
-			int newIterations = previousIterations + 1;
+			int newIterations = previousIterations;
 			newDifficulty = Utils::Min(newDifficulty, Config::MAX_AI_PLAYER_SEARCH_DEPTH);
-			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty) + " and iterations of: " + CharString(newIterations));
+			PostMessage("Initialized a new AI " + playerNames[colour] + " with difficulty of: " + CharString(newDifficulty) /*+ " and iterations of: " + CharString(newIterations)*/);
 			players[colour] = new AIPlayer(newDifficulty, newIterations, colour, randGen);
 			triedMove = false;
 			break;
